@@ -1,24 +1,37 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import mysql.connector
 import sqlite3
 
 # Goal:  Create a dashboard for visual Lastwar data analyis
-# SQlite does not like %s, but wants ?
-# connection = sqlite3.connect("lastwar.sqlite")
 # Developed by Drew Clark 8/24/25
+
+#database = 'mySQL'
+database = 'sqlite'
 
 def create_connection():
     try:
-        connection = sqlite3.connect("lastwar.sqlite")
-        return connection
-    except sqlite3.Error as e:
+        if database == 'mySQL':
+            connection = mysql.connector.connect(
+                host="localhost",
+                user="DrewC125",
+                password="1103",
+                database="lastwar"
+            )
+            if connection.is_connected():
+                print("[INFO] Connected to MySQL database")
+                return connection
+        else:
+            connection = sqlite3.connect("lastwar.sqlite")  # sqlite
+            return connection
+    except Exception as e:
         print(f"[ERROR] {e}")
         return None
 
 def disconnect(connection):
-        connection.close()
-        print("[INFO] Connection closed")
+    connection.close()
+    print("[INFO] Connection closed")
 
 def query_df(conn, query, parms=()):
     cursor = conn.cursor()
@@ -76,7 +89,12 @@ def render_selection_boxes(col):
 
 # Query DB for player statistics, print to a column
 def print_playerstats(col):
-    playerstats_query = "select olds_rank,power,kills,vs_points,donations from alliance_data where player =? and date = ?"
+    
+    if database == 'mySQL':
+        playerstats_query = "select olds_rank,power,kills,vs_points,donations from alliance_data where player = %s and date = %s"
+    else:
+        playerstats_query = "select olds_rank,power,kills,vs_points,donations from alliance_data where player = ? and date = ?"  # sqlite
+
     playerstats_df = query_df(conn, playerstats_query, [st.session_state.player_choice, st.session_state.week_choice])
     columns = ['olds_rank', 'power', 'kills', 'vs_points', 'donations']
     if playerstats_df.empty:
@@ -85,7 +103,11 @@ def print_playerstats(col):
     else:
         playerstats_df.columns = columns
 
-    playeravg_query = "select avg(vs_points) as vs_avg, avg(donations) as donation_avg from alliance_data where player = ? and date != 'NaN'"
+    if database == 'mySQL':
+        playeravg_query = "select avg(vs_points) as vs_avg, avg(donations) as donation_avg from alliance_data where player = %s and date != 'NaN'"
+    else:
+        playeravg_query = "select avg(vs_points) as vs_avg, avg(donations) as donation_avg from alliance_data where player = ? and date != 'NaN'"
+    
     playeravg_df = query_df(conn, playeravg_query, [st.session_state.player_choice])
     columns = ['vs_avg', 'donation_avg']
     if playeravg_df.empty:
@@ -154,7 +176,11 @@ def print_playerstats(col):
         col.markdown(f"##### Avg Donations:  :green[{int(playeravg_df.at[0, 'donation_avg']):,}]")
 
 def print_alliancestats(col):
-    alliancestats_query = "select sum(power), sum(kills), sum(vs_points), sum(donations) from alliance_data where date = ?"
+    if database == 'mySQL':
+        alliancestats_query = "select sum(power), sum(kills), sum(vs_points), sum(donations) from alliance_data where date = %s"
+    else:
+        alliancestats_query = "select sum(power), sum(kills), sum(vs_points), sum(donations) from alliance_data where date = ?" # sqlite
+    
     alliancestats_df = query_df(conn, alliancestats_query, [st.session_state.week_choice])
     alliancestats_df.columns = ['power', 'kills', 'vs_points', 'donations']
 
@@ -184,14 +210,22 @@ def print_alliancestats(col):
     col.markdown(f"##### Avg Donations:  :blue[{int(allianceavg_df.at[0, 'donation_avg']):,}]")
 
 def weekly_alliance_data(metric, date):
-    query = f"select * from alliance_data where date = ? order by {metric} asc"
+    if database == 'mySQL':
+        query = f"select * from alliance_data where date = %s order by {metric} asc"  
+    else:
+        query = f"select * from alliance_data where date = ? order by {metric} asc" # sqlite
+    
     df = query_df(conn, query, [date])
     df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
     print("[INFO] Pulled alliance weekly data from Database")
     return df
 
 def print_player_chart(col, player, metric):
-    progress_query = f"select * from alliance_data where player = ? and date != 'NaN' order by date asc"
+    if database == 'mySQL':
+        progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by date asc"    
+    else:
+        progress_query = f"select * from alliance_data where player = ? and date != 'NaN' order by date asc" # sqlite
+    
     player_df = query_df(conn, progress_query, [player])
     player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
 
@@ -222,8 +256,8 @@ def print_alliance_data(col, df, metric):
 if __name__ == "__main__":
     # Set page config
     print("==================================================")
-    #st.sidebar.title("Navigation")
-    #st.sidebar.markdown("Select a page from the sidebar to navigate.")
+    st.sidebar.title("Navigation")
+    st.sidebar.markdown("Select a page from the sidebar to navigate.")
     st.set_page_config(layout="wide", page_title="Lastwar AI")
     col1, col2 = st.columns([3, 1], gap="large", vertical_alignment="top")  # Wider left column for visuals
     conn = create_connection()
