@@ -7,8 +7,8 @@ import src.db as db
 #           - User can select players to add from multiselect
 #           - User can select a metric/date from selectbox
 
-database = 'mySQL'
-#database = 'sqlite'
+#database = 'mySQL'
+database = 'sqlite'
 
 # Callbacks for selection box updates
 def on_players_change():
