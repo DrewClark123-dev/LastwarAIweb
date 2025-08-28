@@ -1,45 +1,13 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import mysql.connector
-import sqlite3
+import src.db as db
 
 # Goal:  Create a dashboard for visual Lastwar data analyis
 # Developed by Drew Clark 8/24/25
 
 #database = 'mySQL'
 database = 'sqlite'
-
-def create_connection():
-    try:
-        if database == 'mySQL':
-            connection = mysql.connector.connect(
-                host="localhost",
-                user="DrewC125",
-                password="1103",
-                database="lastwar"
-            )
-            if connection.is_connected():
-                print("[INFO] Connected to MySQL database")
-                return connection
-        else:
-            connection = sqlite3.connect("lastwar.sqlite")  # sqlite
-            return connection
-    except Exception as e:
-        print(f"[ERROR] {e}")
-        return None
-
-def disconnect(connection):
-    connection.close()
-    print("[INFO] Connection closed")
-
-def query_df(conn, query, parms=()):
-    cursor = conn.cursor()
-    cursor.execute(query, parms)
-    results = cursor.fetchall()
-    df = pd.DataFrame(results)
-    cursor.close()
-    return df
 
 # Callbacks for selection box updates
 def on_week_change():
@@ -50,13 +18,13 @@ def on_player_change():
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
     if 'weeks' not in st.session_state:
-        week_query = "select distinct date from alliance_data where date != 'NaN' order by date"
-        week_df = query_df(conn, week_query)
+        week_query = "select distinct date from alliance_data where date != 'NaN' order by date desc"
+        week_df = db.query_df(conn, week_query)
         st.session_state.weeks = week_df.iloc[:, 0].tolist()
         print("[INFO] Pulled weeks from Database")
     if 'players' not in st.session_state:
         player_query = "select distinct player from alliance_data order by player"
-        player_df = query_df(conn, player_query)
+        player_df = db.query_df(conn, player_query)
         st.session_state.players = player_df.iloc[:, 0].tolist()
         print("[INFO] Pulled players from Database")
 
@@ -68,7 +36,7 @@ def render_selection_boxes(col):
     )
     if 'week_choice' not in st.session_state:
         # Get most recent week by default
-        st.session_state.week_choice = st.session_state.weeks[-1]
+        st.session_state.week_choice = st.session_state.weeks[0]
     date_dropdown = col.selectbox(
         "Date",
         options=st.session_state.weeks,
@@ -95,7 +63,7 @@ def print_playerstats(col):
     else:
         playerstats_query = "select olds_rank,power,kills,vs_points,donations from alliance_data where player = ? and date = ?"  # sqlite
 
-    playerstats_df = query_df(conn, playerstats_query, [st.session_state.player_choice, st.session_state.week_choice])
+    playerstats_df = db.query_df(conn, playerstats_query, [st.session_state.player_choice, st.session_state.week_choice])
     columns = ['olds_rank', 'power', 'kills', 'vs_points', 'donations']
     if playerstats_df.empty:
         # create an empty dataframe with the correct columns
@@ -108,7 +76,7 @@ def print_playerstats(col):
     else:
         playeravg_query = "select avg(vs_points) as vs_avg, avg(donations) as donation_avg from alliance_data where player = ? and date != 'NaN'"
     
-    playeravg_df = query_df(conn, playeravg_query, [st.session_state.player_choice])
+    playeravg_df = db.query_df(conn, playeravg_query, [st.session_state.player_choice])
     columns = ['vs_avg', 'donation_avg']
     if playeravg_df.empty:
         # create an empty dataframe with the correct columns
@@ -181,11 +149,11 @@ def print_alliancestats(col):
     else:
         alliancestats_query = "select sum(power), sum(kills), sum(vs_points), sum(donations) from alliance_data where date = ?" # sqlite
     
-    alliancestats_df = query_df(conn, alliancestats_query, [st.session_state.week_choice])
+    alliancestats_df = db.query_df(conn, alliancestats_query, [st.session_state.week_choice])
     alliancestats_df.columns = ['power', 'kills', 'vs_points', 'donations']
 
     allianceavg_query = "select avg(weekly_vs), avg(weekly_donate) from ( select `date`, sum(`vs_points`) as weekly_vs, sum(`donations`) as weekly_donate from alliance_data group by `date` ) as weekly_sums; "
-    allianceavg_df = query_df(conn, allianceavg_query)
+    allianceavg_df = db.query_df(conn, allianceavg_query)
     allianceavg_df.columns = ['vs_avg', 'donation_avg']
     print("[INFO] Pulled alliance stats from Database")
 
@@ -197,7 +165,7 @@ def print_alliancestats(col):
         col.markdown(f"##### Current Kills:  :red[N/A]")
     else:
         col.markdown(f"##### Current Kills:  :green[{alliancestats_df.at[0, 'kills']:,}]")
-    # orange if alliance vs points under avg
+    # orange if alliance metric under avg
     if alliancestats_df.at[0, 'vs_points'] < allianceavg_df.at[0, 'vs_avg']:
         col.markdown(f"##### Weekly VS Points:  :orange[{alliancestats_df.at[0, 'vs_points']:,}]")
     else:
@@ -215,7 +183,7 @@ def weekly_alliance_data(metric, date):
     else:
         query = f"select * from alliance_data where date = ? order by {metric} asc" # sqlite
     
-    df = query_df(conn, query, [date])
+    df = db.query_df(conn, query, [date])
     df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
     print("[INFO] Pulled alliance weekly data from Database")
     return df
@@ -226,7 +194,7 @@ def print_player_chart(col, player, metric):
     else:
         progress_query = f"select * from alliance_data where player = ? and date != 'NaN' order by date asc" # sqlite
     
-    player_df = query_df(conn, progress_query, [player])
+    player_df = db.query_df(conn, progress_query, [player])
     player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
 
     member_df = player_df[['date',metric]]
@@ -242,7 +210,7 @@ def print_player_chart(col, player, metric):
 def print_alliance_data(col, df, metric):
     alliance_df = df[['player',metric]]
     alliance_df = alliance_df.copy()
-    alliance_df['color'] = alliance_df['player'].apply(lambda x: 'green' if x == st.session_state.player_choice else '#1f77b4')
+    alliance_df['color'] = alliance_df['player'].apply(lambda x: '#00e676' if x == st.session_state.player_choice else '#3ea6ff')
     alliance_chart = alt.Chart(alliance_df).mark_bar().encode(
         x=alt.X('player', sort=alliance_df['player'].tolist()),  # maintain order
         y=metric,
@@ -259,26 +227,23 @@ if __name__ == "__main__":
     st.sidebar.title("Navigation")
     st.sidebar.markdown("Select a page from the sidebar to navigate.")
     st.set_page_config(layout="wide", page_title="Lastwar AI")
-    col1, col2 = st.columns([3, 1], gap="large", vertical_alignment="top")  # Wider left column for visuals
-    conn = create_connection()
+    col1, col2 = st.columns([3, 1], gap="large", vertical_alignment="top")
+    conn = db.create_connection(database)
 
     # Print data for the right column
     col2.write("###")
     col2.header("Query Selection")
     get_selection_data()
     select1, select2 = col2.columns([2, 1])
-    metric_dropdown, date_dropdown, player_dropdown = render_selection_boxes(select1)   ########## need to return those variables?
+    metric_dropdown, date_dropdown, player_dropdown = render_selection_boxes(select1)
     print_playerstats(col2)
     print_alliancestats(col2)
 
     # Print data for the left column
-    #col1.markdown("<h1 style='padding-left: 420px;'>Lastwar Dashboard</h1>", unsafe_allow_html=True)
-    #col1.markdown("<h1 style='text-align: center; color: green; '>Lastwar Dashboard</h1>", unsafe_allow_html=True)
-    dash1, dash2, dash3 = col1.columns([4, 4, 2])
-    dash2.header(":blue[Lastwar Dashboard]")
+    col1.markdown("<h1 style='text-align: center; color: #3ea6ff; '>Lastwar Dashboard</h1>", unsafe_allow_html=True)
     col1.write("")
     print_player_chart(col1, player_dropdown, metric_dropdown)
     alliance_df = weekly_alliance_data(metric_dropdown, date_dropdown)
     print_alliance_data(col1, alliance_df, metric_dropdown)
 
-    disconnect(conn)
+    db.disconnect(conn)
