@@ -23,11 +23,16 @@ def get_selection_data():
         print("[INFO] Pulled players from Database")
 
 def render_selection_boxes(col):
-    sel1, sel2, space1 = col.columns([6, 1, 3])
+    space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 2])
     metric_dropdown = sel2.selectbox(
         "Metric",
         options=['power','kills','vs_points','donations'],
         index=2
+    )
+    metrictype_dropdown = sel3.selectbox(
+        "Metric Type",
+        options=['Player','Alliance'],
+        index=0
     )
     if 'selected_players' not in st.session_state:
         st.session_state.selected_players = ['DrewC125','Megan']
@@ -38,7 +43,7 @@ def render_selection_boxes(col):
         default=st.session_state.selected_players,
         on_change=on_players_change
     )
-    return metric_dropdown, selected_players
+    return metrictype_dropdown, metric_dropdown, selected_players
 
 def print_comparison_chart(col, metric):
     combined_data = []
@@ -65,6 +70,21 @@ def print_comparison_chart(col, metric):
     ).interactive()
     col.altair_chart(player_chart, use_container_width=True)
 
+def print_alliance_chart(col, metric):
+    alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date;"    
+    alliance_df = db.query_df(conn, alliance_query)
+    alliance_df.columns = ['date', metric]
+    
+    alliance_chart = alt.Chart(alliance_df).mark_line(point=True).encode(
+        x=alt.X('date'),
+        y=metric,
+        tooltip=[metric, 'date']
+    ).properties(
+        title=alt.TitleParams(text=f"Alliance {metric} per week", anchor='middle', fontSize=24),
+        height=800
+    ).interactive()
+    col.altair_chart(alliance_chart, use_container_width=True)
+
 if __name__ == "__main__":
     print("==================================================")
     st.sidebar.title("Navigation")
@@ -79,10 +99,12 @@ if __name__ == "__main__":
     selection_container = st.container()
 
     with selection_container:
-        metric_dropdown, player_dropdown = render_selection_boxes(st)
+        metrictype_dropdown, metric_dropdown, player_dropdown = render_selection_boxes(st)
     with chart_container:
-        if st.session_state.selected_players:
+        if metrictype_dropdown == 'Player' and st.session_state.selected_players:
             print_comparison_chart(st, metric_dropdown)
+        elif metrictype_dropdown == 'Alliance':
+            print_alliance_chart(st, metric_dropdown)
         else:
             dummy_chart = alt.Chart().mark_point().encode().properties(height=800)
             st.altair_chart(dummy_chart)
