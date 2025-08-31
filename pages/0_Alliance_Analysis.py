@@ -13,6 +13,10 @@ database = 'sqlite'
 # Callbacks for selection box updates
 def on_players_change():
     st.session_state.selected_players = st.session_state.player_multiselect_value
+def on_metric_change():
+    st.session_state.metric_choice = st.session_state.metric_selectbox_value
+def on_metrictype_change():
+    st.session_state.metrictype_choice = st.session_state.metrictype_selectbox_value
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -24,15 +28,25 @@ def get_selection_data():
 
 def render_selection_boxes(col):
     space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 2])
+    metric_options = ['power','kills','vs_points','donations']
+    if 'metric_choice' not in st.session_state:
+        st.session_state.metric_choice = 'power'
     metric_dropdown = sel2.selectbox(
         "Metric",
-        options=['power','kills','vs_points','donations'],
-        index=2
+        options=metric_options,
+        key="metric_selectbox_value",
+        index=metric_options.index(st.session_state.metric_choice), 
+        on_change=on_metric_change
     )
+    metrictype_options = ['Player','Alliance']
+    if 'metrictype_choice' not in st.session_state:
+        st.session_state.metrictype_choice = 'Player'
     metrictype_dropdown = sel3.selectbox(
         "Metric Type",
-        options=['Player','Alliance'],
-        index=0
+        options=metrictype_options,
+        key="metrictype_selectbox_value",
+        index=metrictype_options.index(st.session_state.metrictype_choice), 
+        on_change=on_metrictype_change
     )
     if 'selected_players' not in st.session_state:
         st.session_state.selected_players = ['DrewC125','Megan']
@@ -62,7 +76,11 @@ def print_comparison_chart(col, metric):
     player_chart = alt.Chart(all_players_df).mark_line(point=True).encode(
         x=alt.X('date'),
         y=metric,
-        color=alt.Color('player', title='Player'),
+        color=alt.Color(
+            'player',
+            title='Player',
+            scale=alt.Scale(domain=st.session_state.selected_players)
+        ),
         tooltip=['player', 'date', metric]
     ).properties(
         title=alt.TitleParams(text=f"Comparing {metric} per week", anchor='middle', fontSize=24),

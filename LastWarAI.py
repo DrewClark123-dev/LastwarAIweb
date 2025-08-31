@@ -14,6 +14,8 @@ def on_week_change():
     st.session_state.week_choice = st.session_state.week_selectbox_value
 def on_player_change():
     st.session_state.player_choice = st.session_state.player_selectbox_value
+def on_metric_change():
+    st.session_state.metric_choice = st.session_state.metric_selectbox_value
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -29,10 +31,15 @@ def get_selection_data():
         print("[INFO] Pulled players from Database")
 
 def render_selection_boxes(col):
+    metric_options = ['power','kills','vs_points','donations']
+    if 'metric_choice' not in st.session_state:
+        st.session_state.metric_choice = 'power'
     metric_dropdown = col.selectbox(
         "Metric",
-        options=['power','kills','vs_points','donations'],
-        index=2
+        options=metric_options,
+        key="metric_selectbox_value",
+        index=metric_options.index(st.session_state.metric_choice), 
+        on_change=on_metric_change
     )
     if 'week_choice' not in st.session_state:
         # Get most recent week by default
