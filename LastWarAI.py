@@ -210,7 +210,7 @@ def print_player_chart(col, player, metric):
         x=alt.X('date', sort=member_df['date'].tolist()),  # maintain order
         y=metric
     ).properties(
-        title=alt.TitleParams(text=f"Player {metric} per week", anchor='middle', fontSize=24)
+        title=alt.TitleParams(text=f"{player} {metric} per week", anchor='middle', fontSize=24)
     ).interactive()
     col.altair_chart(player_chart, use_container_width=True)
 
@@ -223,7 +223,7 @@ def print_alliance_data(col, df, metric):
         y=metric,
         color=alt.Color('color:N', scale=None)
     ).properties(
-        title=alt.TitleParams(text=f"Alliance {metric} this week", anchor='middle', fontSize=24)
+        title=alt.TitleParams(text=f"Alliance {metric} on {df['date'].iloc[0]}", anchor='middle', fontSize=24)
     ).interactive()
     col.altair_chart(alliance_chart, use_container_width=True)
     col.dataframe(df)

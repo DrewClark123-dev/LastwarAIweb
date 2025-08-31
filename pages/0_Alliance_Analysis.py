@@ -72,6 +72,7 @@ def print_comparison_chart(col, metric):
 
         combined_data.append(player_df[['date','player',metric]])
     
+    print("[INFO] Pulled player data from Database")
     all_players_df = pd.concat(combined_data, ignore_index=True)
     player_chart = alt.Chart(all_players_df).mark_line(point=True).encode(
         x=alt.X('date'),
@@ -92,6 +93,7 @@ def print_alliance_chart(col, metric):
     alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date;"    
     alliance_df = db.query_df(conn, alliance_query)
     alliance_df.columns = ['date', metric]
+    print("[INFO] Pulled alliance data from Database")
     
     alliance_chart = alt.Chart(alliance_df).mark_line(point=True).encode(
         x=alt.X('date'),

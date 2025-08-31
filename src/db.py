@@ -12,10 +12,11 @@ def create_connection(database):
                 database="lastwar"
             )
             if connection.is_connected():
-                print("[INFO] Connected to MySQL database")
+                print(f"[INFO] Connected to {database} database")
                 return connection
         else:
             connection = sqlite3.connect("lastwar.sqlite")  # sqlite
+            print(f"[INFO] Connected to {database} database")
             return connection
     except Exception as e:
         print(f"[ERROR] {e}")
