@@ -93,6 +93,7 @@ def print_alliance_chart(col, metric):
     alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date;"    
     alliance_df = db.query_df(conn, alliance_query)
     alliance_df.columns = ['date', metric]
+    alliance_df[metric] = alliance_df[metric].astype(float)
     print("[INFO] Pulled alliance data from Database")
     
     alliance_chart = alt.Chart(alliance_df).mark_line(point=True).encode(
@@ -112,7 +113,7 @@ if __name__ == "__main__":
     st.set_page_config(layout="wide", page_title="Lastwar AI")
     conn = db.create_connection(database)
 
-    st.markdown("<h1 style='text-align: center; color: #3ea6ff; '>Lastwar Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #3ea6ff; '>OLDs Lastwar Dashboard</h1>", unsafe_allow_html=True)
     st.write("")
     get_selection_data()
     chart_container = st.container()

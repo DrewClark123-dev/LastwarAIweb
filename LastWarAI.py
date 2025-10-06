@@ -247,7 +247,7 @@ if __name__ == "__main__":
     print_alliancestats(col2)
 
     # Print data for the left column
-    col1.markdown("<h1 style='text-align: center; color: #3ea6ff; '>Lastwar Dashboard</h1>", unsafe_allow_html=True)
+    col1.markdown("<h1 style='text-align: center; color: #3ea6ff; '>OLDs Lastwar Dashboard</h1>", unsafe_allow_html=True)
     col1.write("")
     print_player_chart(col1, player_dropdown, metric_dropdown)
     alliance_df = weekly_alliance_data(metric_dropdown, date_dropdown)
