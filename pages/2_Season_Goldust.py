@@ -71,6 +71,9 @@ def print_current_chart(col):
     current_df['rank'] = current_df['goldust'].rank(method='dense', ascending=True).astype(int)
     current_df = current_df.sort_values('rank')
 
+    # Change color for selected alliances
+    current_df['color'] = current_df['alliance'].apply(lambda x: "#e6e200" if x in st.session_state.goldust_alliances else '#3ea6ff')
+
     # Define points and line separately to make points larger
     current_line = alt.Chart(current_df).mark_line().encode(
         x=alt.X("alliance:O", sort=list(current_df['alliance'])),
@@ -79,12 +82,13 @@ def print_current_chart(col):
     current_points = alt.Chart(current_df).mark_circle(size=100).encode(
         x=alt.X("alliance:O", title="Goldust Rank", sort=list(current_df['alliance'])),
         y=alt.X("goldust:Q", title="Season 3 Goldust"),
+        color=alt.Color('color:N', scale=None),
         tooltip=['warzone','alliance','goldust']
     ).properties(
         title=alt.TitleParams(text=f"Season 3 Goldust Rankings", anchor='middle', fontSize=24),
         height=800
     ).interactive()
-    current_chart = current_points + current_line
+    current_chart = current_line + current_points
 
     col.altair_chart(current_chart, use_container_width=True)
 
