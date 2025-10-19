@@ -16,10 +16,10 @@ def on_metrictype_change():
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
-    if 'alliances' not in st.session_state:
+    if 's3alliances' not in st.session_state:
         alliance_query = "select distinct alliance from s3goldust"
         alliance_df = db.query_df(conn, alliance_query)
-        st.session_state.alliances = alliance_df.iloc[:, 0].tolist()
+        st.session_state.s3alliances = alliance_df.iloc[:, 0].tolist()
         print("[INFO] Pulled alliances from Database")
 
 def render_selection_boxes(col):
@@ -40,7 +40,7 @@ def render_selection_boxes(col):
             st.session_state.goldust_alliances = ['OLDs', 'Ap3x']
         goldust_alliances = sel1.multiselect(
             "Select multiple alliances",
-            options=st.session_state.alliances,
+            options=st.session_state.s3alliances,
             key="timeline_multiselect_value",
             default=st.session_state.goldust_alliances,
             on_change=on_alliances_change
@@ -52,7 +52,7 @@ def render_selection_boxes(col):
             st.session_state.goldust_alliances = ['OLDS','KOUS']
         goldust_alliances = sel1.multiselect(
             "Select multiple alliances",
-            options=st.session_state.alliances,
+            options=st.session_state.s3alliances,
             key="timeline_multiselect_value",
             default=st.session_state.goldust_alliances,
             on_change=on_alliances_change
