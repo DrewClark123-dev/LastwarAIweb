@@ -146,10 +146,8 @@ if __name__ == "__main__":
         metrictype_dropdown, multiselect_dropdown = render_selection_boxes(st)
     with chart_container:
         if metrictype_dropdown == 'Server' and st.session_state.selected_servers:
-            print(1)
             print_server_chart(st, multiselect_dropdown)
         elif metrictype_dropdown == 'Alliance' and st.session_state.selected_alliances:
-            print(1)
             print_alliance_chart(st, multiselect_dropdown)
         else:
             dummy_chart = alt.Chart().mark_point().encode().properties(height=800)
