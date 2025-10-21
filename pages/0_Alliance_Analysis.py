@@ -74,7 +74,19 @@ def print_comparison_chart(col, metric):
     
     print("[INFO] Pulled player data from Database")
     all_players_df = pd.concat(combined_data, ignore_index=True)
-    player_chart = alt.Chart(all_players_df).mark_line(point=True).encode(
+
+
+    # Define points and line separately to make points larger
+    player_line = alt.Chart(all_players_df).mark_line().encode(
+        x=alt.X("date"),
+        y=metric,
+        color=alt.Color(
+            'player',
+            title='Player',
+            scale=alt.Scale(domain=st.session_state.selected_players)
+        )
+    )
+    player_points = alt.Chart(all_players_df).mark_circle(size=150).encode(
         x=alt.X('date'),
         y=metric,
         color=alt.Color(
@@ -87,6 +99,8 @@ def print_comparison_chart(col, metric):
         title=alt.TitleParams(text=f"Comparing {metric} per week", anchor='middle', fontSize=24),
         height=800
     ).interactive()
+
+    player_chart = player_line + player_points
     col.altair_chart(player_chart, use_container_width=True)
 
 def print_alliance_chart(col, metric):
@@ -95,8 +109,13 @@ def print_alliance_chart(col, metric):
     alliance_df.columns = ['date', metric]
     alliance_df[metric] = alliance_df[metric].astype(float)
     print("[INFO] Pulled alliance data from Database")
-    
-    alliance_chart = alt.Chart(alliance_df).mark_line(point=True).encode(
+
+    # Define points and line separately to make points larger
+    alliance_line = alt.Chart(alliance_df).mark_line().encode(
+        x=alt.X("date"),
+        y=metric,
+    )
+    alliance_points = alt.Chart(alliance_df).mark_circle(size=150).encode(
         x=alt.X('date'),
         y=metric,
         tooltip=[metric, 'date']
@@ -104,6 +123,8 @@ def print_alliance_chart(col, metric):
         title=alt.TitleParams(text=f"Alliance {metric} per week", anchor='middle', fontSize=24),
         height=800
     ).interactive()
+
+    alliance_chart = alliance_line + alliance_points
     col.altair_chart(alliance_chart, use_container_width=True)
 
 if __name__ == "__main__":

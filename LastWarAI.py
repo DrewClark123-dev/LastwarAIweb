@@ -205,13 +205,20 @@ def print_player_chart(col, player, metric):
     player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
 
     member_df = player_df[['date',metric]]
-    
-    player_chart = alt.Chart(member_df).mark_line(point=True).encode(
+
+    # Define points and line separately to make points larger
+    player_line = alt.Chart(member_df).mark_line().encode(
+        x=alt.X("date", sort=list(member_df['date'].tolist())),
+        y=metric,
+    )
+    player_points = alt.Chart(member_df).mark_circle(size=150).encode(
         x=alt.X('date', sort=member_df['date'].tolist()),  # maintain order
         y=metric
     ).properties(
         title=alt.TitleParams(text=f"{player} {metric} per week", anchor='middle', fontSize=24)
     ).interactive()
+
+    player_chart = player_line + player_points
     col.altair_chart(player_chart, use_container_width=True)
 
 def print_alliance_data(col, df, metric):

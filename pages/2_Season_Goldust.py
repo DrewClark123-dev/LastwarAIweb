@@ -80,7 +80,7 @@ def print_current_chart(col):
         x=alt.X("alliance:O", sort=list(current_df['alliance'])),
         y=alt.X("goldust:Q"),
     )
-    current_points = alt.Chart(current_df).mark_circle(size=100).encode(
+    current_points = alt.Chart(current_df).mark_circle(size=150).encode(
         x=alt.X("alliance:O", title="Goldust Rank", sort=list(current_df['alliance'])),
         y=alt.X("goldust:Q", title="Season 3 Goldust"),
         color=alt.Color('color:N', scale=None),
@@ -89,8 +89,8 @@ def print_current_chart(col):
         title=alt.TitleParams(text=f"Season 3 Goldust Rankings", anchor='middle', fontSize=24),
         height=800
     ).interactive()
-    current_chart = current_line + current_points
 
+    current_chart = current_line + current_points
     col.altair_chart(current_chart, use_container_width=True)
 
 def print_timeline_chart(col):
@@ -111,7 +111,13 @@ def print_timeline_chart(col):
     timeline_df['rank'] = timeline_df.groupby("alliance")["goldust"].rank(method="first", ascending=False)
     # timeline_df['rank'] = timeline_df['rank'].astype(int)
 
-    timeline_chart = alt.Chart(timeline_df).mark_line(point=True).encode(
+    # Define points and line separately to make points larger
+    timeline_line = alt.Chart(timeline_df).mark_line().encode(
+        x=alt.X("date:O", sort="descending"),
+        y=alt.X("goldust:Q"),
+        color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.goldust_alliances))
+    )
+    timeline_points = alt.Chart(timeline_df).mark_circle(size=150).encode(
         x=alt.X("date:O", title="Season 3 Week", sort="descending"),
         y=alt.X("goldust:Q", title="Season 3 Goldust"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.goldust_alliances)),
@@ -120,6 +126,8 @@ def print_timeline_chart(col):
         title=alt.TitleParams(text=f"Comparing Season 3 Goldust per week", anchor='middle', fontSize=24),
         height=800
     ).interactive()
+
+    timeline_chart = timeline_line + timeline_points
     col.altair_chart(timeline_chart, use_container_width=True)
 
 if __name__ == "__main__":

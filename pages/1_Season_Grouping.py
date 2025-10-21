@@ -86,7 +86,13 @@ def print_server_chart(col, metric):
     all_servers_df['rank'] = all_servers_df.groupby("warzone")["totalhero"].rank(method="first", ascending=False)
     all_servers_df['rank'] = all_servers_df['rank'].astype(int)
 
-    server_chart = alt.Chart(all_servers_df).mark_line(point=True).encode(
+    # Define points and line separately to make points larger
+    server_line = alt.Chart(all_servers_df).mark_line().encode(
+        x=alt.X("rank:O", sort="descending"),
+        y=alt.X("totalhero:Q"),
+        color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers))
+    )
+    server_points = alt.Chart(all_servers_df).mark_circle(size=60).encode(
         x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
         y=alt.X("totalhero:Q", title="Total Hero Power"),
         color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers)),
@@ -95,6 +101,8 @@ def print_server_chart(col, metric):
         title=alt.TitleParams(text=f"Comparing Total Hero Power per Warzone", anchor='middle', fontSize=24),
         height=800
     ).interactive()
+    
+    server_chart = server_line + server_points
     col.altair_chart(server_chart, use_container_width=True)
 
 def print_alliance_chart(col, metric):
@@ -116,7 +124,13 @@ def print_alliance_chart(col, metric):
     all_alliances_df['rank'] = all_alliances_df.groupby("alliance")["totalhero"].rank(method="first", ascending=False)
     all_alliances_df['rank'] = all_alliances_df['rank'].astype(int)
 
-    server_chart = alt.Chart(all_alliances_df).mark_line(point=True).encode(
+    # Define points and line separately to make points larger
+    server_line = alt.Chart(all_alliances_df).mark_line().encode(
+        x=alt.X("rank:O", sort="descending"),
+        y=alt.X("totalhero:Q"),
+        color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances))
+    )
+    server_points = alt.Chart(all_alliances_df).mark_circle(size=100).encode(
         x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
         y=alt.X("totalhero:Q", title="Total Hero Power"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances)),
@@ -125,6 +139,8 @@ def print_alliance_chart(col, metric):
         title=alt.TitleParams(text=f"Comparing Total Hero Power per Alliance", anchor='middle', fontSize=24),
         height=800
     ).interactive()
+
+    server_chart = server_line + server_points
     col.altair_chart(server_chart, use_container_width=True)
 
 if __name__ == "__main__":
