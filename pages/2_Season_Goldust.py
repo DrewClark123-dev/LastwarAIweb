@@ -113,12 +113,12 @@ def print_timeline_chart(col):
 
     # Define points and line separately to make points larger
     timeline_line = alt.Chart(timeline_df).mark_line().encode(
-        x=alt.X("date:O", sort="descending"),
+        x=alt.X("date:O", sort="ascending"),
         y=alt.X("goldust:Q"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.goldust_alliances))
     )
     timeline_points = alt.Chart(timeline_df).mark_circle(size=150).encode(
-        x=alt.X("date:O", title="Season 3 Week", sort="descending"),
+        x=alt.X("date:O", title="Season 3 Week", sort="ascending"),
         y=alt.X("goldust:Q", title="Season 3 Goldust"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.goldust_alliances)),
         tooltip=['warzone','alliance','goldust']
