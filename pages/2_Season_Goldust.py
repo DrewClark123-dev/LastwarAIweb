@@ -38,7 +38,7 @@ def render_selection_boxes(col):
     if st.session_state.goldustmetric_choice == 'Current':
         if 'goldust_alliances' not in st.session_state:
             # This wont work if OCR reads alliance names wrong...
-            st.session_state.goldust_alliances = ['OLDs','KOUS','DHCM','ASHH','NatA','BytL','SHT1','baek']
+            st.session_state.goldust_alliances = ['OLDs','KOUS','SiNS','ASHH','NatA','Bytl','SHT1','baek']
         goldust_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.s3alliances,
