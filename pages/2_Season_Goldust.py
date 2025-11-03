@@ -97,9 +97,9 @@ def print_timeline_chart(col):
     combined_data = []
     for alliance in st.session_state.goldust_alliances:
         if database == 'mySQL':
-            alliance_query = "select * from s3goldust where alliance = %s order by alliance asc"    
+            alliance_query = "select * from s3goldust where alliance = %s order by date asc"    
         else:
-            alliance_query = f"select * from s3goldust where alliance = ? order by alliance asc" # sqlite
+            alliance_query = f"select * from s3goldust where alliance = ? order by date asc" # sqlite
         
         alliance_df = db.query_df(conn, alliance_query, [alliance])
         alliance_df.columns = ['date', 'warzone', 'alliance', 'goldust']
