@@ -14,7 +14,9 @@ def on_alliances_change():
 def on_metrictype_change():
     st.session_state.goldustmetric_choice = st.session_state.goldustmetric_selectbox_value
 def on_dates_change():
-    st.session_state.goldust_date = st.session_state.s3date_multiselect_value
+    st.session_state.goldust_date = st.session_state.s3date_multiselect_value 
+def update_checkbox():
+    st.session_state.goldust_check = st.session_state.gold_faction
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -30,11 +32,26 @@ def get_selection_data():
         print("[INFO] Pulled dates from Database")
 
 def render_selection_boxes(col):
-    space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 1])
+    space1, sel1, sel2, sel3, check, space2 = col.columns([1, 6, 1, 1, 1, 1])
 
+
+    # Set default as Current
     metrictype_options = ['Current','Timeline']
     if 'goldustmetric_choice' not in st.session_state:
         st.session_state.goldustmetric_choice = 'Current'
+
+    # Don't show Faction checkmark for timeline
+    if st.session_state.goldustmetric_choice == 'Current':
+        if 'goldust_check' not in st.session_state:
+            st.session_state.goldust_check = True
+        check.markdown("<div style='padding-top: 30px'> </div>", unsafe_allow_html=True)
+        faction_check = check.checkbox(
+            "Faction",
+            value=st.session_state.goldust_check,
+            key="gold_faction",
+            on_change=update_checkbox
+            )
+
     metrictype_dropdown = sel2.selectbox(
         "Metric Type",
         options=metrictype_options,
@@ -62,7 +79,6 @@ def render_selection_boxes(col):
             options=st.session_state.s3dates,
             key="s3date_multiselect_value",
             index=st.session_state.s3dates.index(st.session_state.goldust_date), 
-            #default=st.session_state.goldust_date,
             on_change=on_dates_change
         )
         return metrictype_dropdown, goldust_alliances
@@ -81,12 +97,24 @@ def render_selection_boxes(col):
     else:
         return None, None
 
+def assign_faction(row):
+    golden_tribe = [1104,1095,1124,1103]
+    scarlet_legion = [1097,1115,1093,1113]
+
+    if row['alliance'] in st.session_state.goldust_alliances:
+        return 'Selected'
+    elif row['warzone'] in scarlet_legion:
+        return 'Scarlet Legion'
+    elif row['warzone'] in golden_tribe:
+        return 'Golden Tribe'
+    else:
+        return 'Other'
+
 def print_current_chart(col):
     if database == 'mySQL':
         current_query = "select * from s3goldust where date = %s order by goldust desc"    
     else:
         current_query = f"select * from s3goldust where date = ? order by goldust desc" # sqlite
-    #current_query = "select * from s3goldust where date = (select max(date) from s3goldust) order by goldust desc"
 
     current_df = db.query_df(conn, current_query, [st.session_state.goldust_date])
     current_df.columns = ['date', 'warzone', 'alliance', 'goldust']
@@ -96,23 +124,50 @@ def print_current_chart(col):
     current_df['rank'] = current_df['goldust'].rank(method='dense', ascending=True).astype(int)
     current_df = current_df.sort_values('rank')
 
-    # Change color for selected alliances
-    current_df['color'] = current_df['alliance'].apply(lambda x: "#e6e200" if x in st.session_state.goldust_alliances else '#3ea6ff')
+    # Add faction to DF
+    current_df['faction'] = current_df.apply(assign_faction, axis=1)
 
-    # Define points and line separately to make points larger
-    current_line = alt.Chart(current_df).mark_line().encode(
-        x=alt.X("alliance:O", sort=list(current_df['alliance'])),
-        y=alt.X("goldust:Q"),
-    )
-    current_points = alt.Chart(current_df).mark_circle(size=150).encode(
-        x=alt.X("alliance:O", title="Goldust Rank", sort=list(current_df['alliance'])),
-        y=alt.X("goldust:Q", title="Season 3 Goldust"),
-        color=alt.Color('color:N', scale=None),
-        tooltip=['warzone','alliance','goldust']
-    ).properties(
-        title=alt.TitleParams(text=f"Season 3 Goldust Rankings", anchor='middle', fontSize=24),
-        height=800
-    ).interactive()
+    # Make factions red
+    if st.session_state.goldust_check:
+        # Define points and line separately to make points larger
+        current_line = alt.Chart(current_df).mark_line().encode(
+            x=alt.X("alliance:O", sort=list(current_df['alliance'])),
+            y=alt.Y("goldust:Q"),
+        )
+        current_points = alt.Chart(current_df).mark_circle(size=150).encode(
+            x=alt.X("alliance:O", title="Goldust Rank", sort=list(current_df['alliance'])),
+            y=alt.Y("goldust:Q", title="Season 3 Goldust"),
+            color=alt.Color(
+                'faction:N', 
+                scale=alt.Scale(
+                    domain=['Golden Tribe', 'Scarlet Legion', 'Selected'],
+                    range=['#3ea6ff', '#e60000', '#e6e200']  # colors you used
+                ),
+                legend=alt.Legend(title="Faction")
+            ),
+            tooltip=['warzone','alliance','goldust']
+        ).properties(
+            title=alt.TitleParams(text=f"Season 3 Goldust Rankings", anchor='middle', fontSize=24),
+            height=800
+        ).interactive()
+
+    else:
+        current_df['color'] = current_df['alliance'].apply(lambda x: "#e6e200" if x in st.session_state.goldust_alliances else '#3ea6ff')
+
+        # Define points and line separately to make points larger
+        current_line = alt.Chart(current_df).mark_line().encode(
+            x=alt.X("alliance:O", sort=list(current_df['alliance'])),
+            y=alt.Y("goldust:Q"),
+        )
+        current_points = alt.Chart(current_df).mark_circle(size=150).encode(
+            x=alt.X("alliance:O", title="Goldust Rank", sort=list(current_df['alliance'])),
+            y=alt.Y("goldust:Q", title="Season 3 Goldust"),
+            color=alt.Color('color:N', scale=None),
+            tooltip=['warzone','alliance','goldust']
+        ).properties(
+            title=alt.TitleParams(text=f"Season 3 Goldust Rankings", anchor='middle', fontSize=24),
+            height=800
+        ).interactive()
 
     current_chart = current_line + current_points
     col.altair_chart(current_chart, use_container_width=True)
@@ -133,7 +188,6 @@ def print_timeline_chart(col):
     # Rank players for charting
     timeline_df = pd.concat(combined_data, ignore_index=True)
     timeline_df['rank'] = timeline_df.groupby("alliance")["goldust"].rank(method="first", ascending=False)
-    # timeline_df['rank'] = timeline_df['rank'].astype(int)
 
     # Define points and line separately to make points larger
     timeline_line = alt.Chart(timeline_df).mark_line().encode(

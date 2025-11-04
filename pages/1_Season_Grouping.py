@@ -17,6 +17,8 @@ def on_metrictype_change():
     st.session_state.herometric_choice = st.session_state.herometric_selectbox_value
 def on_dates_change():
     st.session_state.grouping_date = st.session_state.date_selectbox_value
+def grouping_checkbox():
+    st.session_state.grouping_check = st.session_state.grouping_faction
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -37,11 +39,24 @@ def get_selection_data():
         print("[INFO] Pulled dates from Database")
 
 def render_selection_boxes(col):
-    space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 1])
+    space1, sel1, sel2, sel3, check, space2 = col.columns([1, 6, 1, 1, 1, 1])
+
+    if 'grouping_check' not in st.session_state:
+        st.session_state.grouping_check = True
+    check.markdown("<div style='padding-top: 30px'> </div>", unsafe_allow_html=True)
 
     metrictype_options = ['Server','Alliance']
     if 'herometric_choice' not in st.session_state:
         st.session_state.herometric_choice = 'Alliance'
+
+    if st.session_state.herometric_choice == 'Server':
+        grouping_check = check.checkbox(
+            "Faction",
+            value=st.session_state.grouping_check,
+            key="grouping_faction",
+            on_change=grouping_checkbox
+            )
+
     metrictype_dropdown = sel2.selectbox(
         "Metric Type",
         options=metrictype_options,
@@ -122,22 +137,54 @@ def print_server_chart(col, metric):
     all_servers_df['rank'] = all_servers_df.groupby("warzone")["totalhero"].rank(method="first", ascending=False)
     all_servers_df['rank'] = all_servers_df['rank'].astype(int)
 
-    # Define points and line separately to make points larger
-    server_line = alt.Chart(all_servers_df).mark_line().encode(
-        x=alt.X("rank:O", sort="descending"),
-        y=alt.X("totalhero:Q"),
-        color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers))
-    )
-    server_points = alt.Chart(all_servers_df).mark_circle(size=60).encode(
-        x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
-        y=alt.X("totalhero:Q", title="Total Hero Power"),
-        color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers)),
-        tooltip=['warzone','alliance','player','totalhero']
-    ).properties(
-        title=alt.TitleParams(text=f"Comparing Total Hero Power per Warzone", anchor='middle', fontSize=24),
-        height=800
-    ).interactive()
-    
+    # Define faction colors
+    if st.session_state.grouping_check:
+        warzone_color_map = {
+            1104: "#3ea6ff", 1095: "#3ea6ff", 1124: "#3ea6ff", 1103: "#3ea6ff",  # Golden Tribe
+            1097: "#e60000", 1115: "#e60000", 1093: "#e60000", 1113: "#e60000"   # Scarlet Legion
+        }
+        # Assign colors to a new column
+        all_servers_df['color'] = all_servers_df['warzone'].map(warzone_color_map)
+
+        # Define color scale for Altair using warzone IDs
+        selected_warzones = all_servers_df['warzone'].unique().tolist()
+        color_scale = alt.Scale(
+            domain=selected_warzones,
+            range=[warzone_color_map[wz] for wz in selected_warzones]
+        )
+        # Define points and line separately to make points larger
+        server_line = alt.Chart(all_servers_df).mark_line().encode(
+            x=alt.X("rank:O", sort="descending"),
+            y=alt.Y("totalhero:Q"),
+            color=alt.Color("warzone:N", scale=color_scale, legend=alt.Legend(title="Server")),
+            detail='warzone:N'  # ensures lines connect points per warzone
+        )
+        server_points = alt.Chart(all_servers_df).mark_circle(size=60).encode(
+            x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
+            y=alt.Y("totalhero:Q", title="Total Hero Power"),
+            color=alt.Color("warzone:N", scale=color_scale, legend=alt.Legend(title="Server")),
+            tooltip=['warzone','alliance','player','totalhero']
+        ).properties(
+            title=alt.TitleParams(text=f"Comparing Total Hero Power per Warzone", anchor='middle', fontSize=24),
+            height=800
+        ).interactive()
+    else:
+        # Define points and line separately to make points larger
+        server_line = alt.Chart(all_servers_df).mark_line().encode(
+            x=alt.X("rank:O", sort="descending"),
+            y=alt.Y("totalhero:Q"),
+            color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers))
+        )
+        server_points = alt.Chart(all_servers_df).mark_circle(size=60).encode(
+            x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
+            y=alt.Y("totalhero:Q", title="Total Hero Power"),
+            color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.selected_servers)),
+            tooltip=['warzone','alliance','player','totalhero']
+        ).properties(
+            title=alt.TitleParams(text=f"Comparing Total Hero Power per Warzone", anchor='middle', fontSize=24),
+            height=800
+        ).interactive()
+
     server_chart = server_line + server_points
     col.altair_chart(server_chart, use_container_width=True)
     return False
@@ -146,7 +193,6 @@ def print_alliance_chart(col, metric):
     combined_data = []
     for alliance in st.session_state.selected_alliances:
         if database == 'mySQL':
-            #alliance_query = "select * from totalhero where alliance = %s and date = (select max(date) from totalhero)" 
             alliance_query = "select * from totalhero where alliance = %s and date = %s"    
         else:
             alliance_query = f"select * from totalhero where alliance = ? and date = ?" # sqlite
