@@ -13,6 +13,8 @@ def on_alliances_change():
     st.session_state.goldust_alliances = st.session_state.timeline_multiselect_value
 def on_metrictype_change():
     st.session_state.goldustmetric_choice = st.session_state.goldustmetric_selectbox_value
+def on_dates_change():
+    st.session_state.goldust_date = st.session_state.s3date_multiselect_value
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -21,9 +23,14 @@ def get_selection_data():
         alliance_df = db.query_df(conn, alliance_query)
         st.session_state.s3alliances = alliance_df.iloc[:, 0].tolist()
         print("[INFO] Pulled alliances from Database")
+    if 's3dates' not in st.session_state:
+        date_query = "select distinct date from s3goldust order by date desc"
+        date_df = db.query_df(conn, date_query)
+        st.session_state.s3dates = date_df.iloc[:, 0].tolist()
+        print("[INFO] Pulled dates from Database")
 
 def render_selection_boxes(col):
-    space1, sel1, sel2, space2 = col.columns([1, 6, 1, 2])
+    space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 1])
 
     metrictype_options = ['Current','Timeline']
     if 'goldustmetric_choice' not in st.session_state:
@@ -46,6 +53,18 @@ def render_selection_boxes(col):
             default=st.session_state.goldust_alliances,
             on_change=on_alliances_change
         )
+        if 'goldust_date' not in st.session_state:
+            date_query = "select max(date) from s3goldust"
+            date_df = db.query_df(conn, date_query)
+            st.session_state.goldust_date =  date_df.iloc[0, 0]   # first row, first column
+        goldust_date = sel3.selectbox(
+            "Date",
+            options=st.session_state.s3dates,
+            key="s3date_multiselect_value",
+            index=st.session_state.s3dates.index(st.session_state.goldust_date), 
+            #default=st.session_state.goldust_date,
+            on_change=on_dates_change
+        )
         return metrictype_dropdown, goldust_alliances
 
     elif st.session_state.goldustmetric_choice == 'Timeline':
@@ -63,8 +82,13 @@ def render_selection_boxes(col):
         return None, None
 
 def print_current_chart(col):
-    current_query = "select * from s3goldust where date = (select max(date) from s3goldust) order by goldust desc"
-    current_df = db.query_df(conn, current_query)
+    if database == 'mySQL':
+        current_query = "select * from s3goldust where date = %s order by goldust desc"    
+    else:
+        current_query = f"select * from s3goldust where date = ? order by goldust desc" # sqlite
+    #current_query = "select * from s3goldust where date = (select max(date) from s3goldust) order by goldust desc"
+
+    current_df = db.query_df(conn, current_query, [st.session_state.goldust_date])
     current_df.columns = ['date', 'warzone', 'alliance', 'goldust']
     print("[INFO] Pulled current goldust data from Database")
 
