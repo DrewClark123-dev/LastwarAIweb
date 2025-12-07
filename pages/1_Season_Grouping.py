@@ -42,20 +42,20 @@ def render_selection_boxes(col):
     space1, sel1, sel2, sel3, check, space2 = col.columns([1, 6, 1, 1, 1, 1])
 
     if 'grouping_check' not in st.session_state:
-        st.session_state.grouping_check = True
+        st.session_state.grouping_check = False
     check.markdown("<div style='padding-top: 30px'> </div>", unsafe_allow_html=True)
 
     metrictype_options = ['Server','Alliance']
     if 'herometric_choice' not in st.session_state:
         st.session_state.herometric_choice = 'Alliance'
 
-    if st.session_state.herometric_choice == 'Server':
-        grouping_check = check.checkbox(
-            "Faction",
-            value=st.session_state.grouping_check,
-            key="grouping_faction",
-            on_change=grouping_checkbox
-            )
+    # if st.session_state.herometric_choice == 'Server':
+    #     grouping_check = check.checkbox(
+    #         "Faction",
+    #         value=st.session_state.grouping_check,
+    #         key="grouping_faction",
+    #         on_change=grouping_checkbox
+    #         )
 
     metrictype_dropdown = sel2.selectbox(
         "Metric Type",
@@ -83,13 +83,12 @@ def render_selection_boxes(col):
             options=st.session_state.groupingdates,
             key="date_selectbox_value",
             index=st.session_state.groupingdates.index(st.session_state.grouping_date), 
-            #default=st.session_state.goldust_date,
             on_change=on_dates_change
         )
         return metrictype_dropdown, selected_servers
     elif st.session_state.herometric_choice == 'Alliance':
         if 'selected_alliances' not in st.session_state:
-            st.session_state.selected_alliances = ['OLDS','KOUS','SiNS','ASHH','NatA','Bytl','SHT1']
+            st.session_state.selected_alliances = ['OLDs','KOUS','SiNS','ASHH','NatA','Bytl','SHT1']
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.alliances,
@@ -106,7 +105,6 @@ def render_selection_boxes(col):
             options=st.session_state.groupingdates,
             key="date_selectbox_value",
             index=st.session_state.groupingdates.index(st.session_state.grouping_date), 
-            #default=st.session_state.goldust_date,
             on_change=on_dates_change
         )
         return metrictype_dropdown, selected_alliances
@@ -117,7 +115,6 @@ def print_server_chart(col, metric):
     combined_data = []
     for server in st.session_state.selected_servers:
         if database == 'mySQL':
-            #server_query = "select * from totalhero where warzone = %s and date = (select max(date) from totalhero)"
             server_query = "select * from totalhero where warzone = %s and date = %s"    
         else:
             server_query = f"select * from totalhero where warzone = ? and date = ?" # sqlite
