@@ -13,6 +13,7 @@ st.session_state.post_transfer_date = '12/06/25'
 # Callbacks for selection box updates
 def on_servers_change():
     st.session_state.transfer_servers_choice = st.session_state.transferserver_multiselect_value
+    st.session_state.all_check = False
 def on_alliances_change():
     st.session_state.transfer_alliances_choice = st.session_state.transferalliance_multiselect_value
 def on_metrictype_change():

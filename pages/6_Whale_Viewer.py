@@ -11,6 +11,7 @@ database = 'sqlite'
 # Callbacks for selection box updates
 def on_servers_change():
     st.session_state.whale_selected_servers = st.session_state.whale_server_multiselect_value
+    st.session_state.whale_check = False
 def on_dates_change():
     st.session_state.whale_date = st.session_state.whale_date_selectbox_value
 def whale_checkbox():
