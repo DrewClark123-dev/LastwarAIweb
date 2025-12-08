@@ -102,7 +102,7 @@ def print_server_chart(col, metric):
         color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.whale_selected_servers))
     )
     server_points = alt.Chart(all_servers_df).mark_circle(size=60).encode(
-        x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
+        x=alt.X("rank:O", title="Top 10 - Total Hero Power", sort="descending"),
         y=alt.Y("totalhero:Q", title="Total Hero Power"),
         color = alt.Color("warzone:N", title="Server", scale=alt.Scale(domain=st.session_state.whale_selected_servers)),
         tooltip=['warzone','alliance','player','totalhero']
