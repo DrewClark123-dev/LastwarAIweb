@@ -112,7 +112,7 @@ def print_server_chart(col, metric):
     ).interactive()
 
     server_chart = server_line + server_points
-    col.altair_chart(server_chart, use_container_width=True)
+    col.altair_chart(server_chart, width='stretch')
     return False
 
 if __name__ == "__main__":

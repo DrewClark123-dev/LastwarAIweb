@@ -222,7 +222,7 @@ def print_player_chart(col, player, metric):
     ).interactive()
 
     player_chart = player_line + player_points
-    col.altair_chart(player_chart, use_container_width=True)
+    col.altair_chart(player_chart, width='stretch')
 
 def print_alliance_data(col, df, metric):
     alliance_df = df[['player',metric]]
@@ -235,7 +235,7 @@ def print_alliance_data(col, df, metric):
     ).properties(
         title=alt.TitleParams(text=f"Alliance {metric} on {df['date'].iloc[0]}", anchor='middle', fontSize=24)
     ).interactive()
-    col.altair_chart(alliance_chart, use_container_width=True)
+    col.altair_chart(alliance_chart, width='stretch')
     col.dataframe(df)
 
 if __name__ == "__main__":

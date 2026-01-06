@@ -122,7 +122,7 @@ def print_server_chart(col):
         height=800
     ).interactive()
 
-    col.altair_chart(server_bar, use_container_width=True)
+    col.altair_chart(server_bar, width='stretch')
     return False
 
 def print_alliance_chart(col):
@@ -160,7 +160,7 @@ def print_alliance_chart(col):
         height=800
     ).interactive()
 
-    col.altair_chart(server_bar, use_container_width=True)
+    col.altair_chart(server_bar, width='stretch')
     return False
 
 if __name__ == "__main__":

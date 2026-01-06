@@ -170,7 +170,7 @@ def print_current_chart(col):
         ).interactive()
 
     current_chart = current_line + current_points
-    col.altair_chart(current_chart, use_container_width=True)
+    col.altair_chart(current_chart, width='stretch')
 
 def print_timeline_chart(col):
     combined_data = []
@@ -206,7 +206,7 @@ def print_timeline_chart(col):
     ).interactive()
 
     timeline_chart = timeline_line + timeline_points
-    col.altair_chart(timeline_chart, use_container_width=True)
+    col.altair_chart(timeline_chart, width='stretch')
 
 if __name__ == "__main__":
     print("==================================================")

@@ -101,7 +101,7 @@ def print_comparison_chart(col, metric):
     ).interactive()
 
     player_chart = player_line + player_points
-    col.altair_chart(player_chart, use_container_width=True)
+    col.altair_chart(player_chart, width='stretch')
 
 def print_alliance_chart(col, metric):
     if database == 'mySQL':
@@ -129,7 +129,7 @@ def print_alliance_chart(col, metric):
     ).interactive()
 
     alliance_chart = alliance_line + alliance_points
-    col.altair_chart(alliance_chart, use_container_width=True)
+    col.altair_chart(alliance_chart, width='stretch')
 
 if __name__ == "__main__":
     print("==================================================")
