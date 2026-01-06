@@ -74,10 +74,11 @@ def print_comparison_chart(col, metric):
     
     print("[INFO] Pulled player data from Database")
     all_players_df = pd.concat(combined_data, ignore_index=True)
+    x_dates = all_players_df['date'].drop_duplicates().tolist()
 
     # Define points and line separately to make points larger
     player_line = alt.Chart(all_players_df).mark_line().encode(
-        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
+        x=alt.X("date:O", axis=alt.Axis(labelAngle=-90), sort=x_dates),
         y=metric,
         color=alt.Color(
             'player',
@@ -86,14 +87,14 @@ def print_comparison_chart(col, metric):
         )
     )
     player_points = alt.Chart(all_players_df).mark_circle(size=150).encode(
-        x=alt.X('date:T', axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
+        x=alt.X('date:O', axis=alt.Axis(labelAngle=-90), sort=x_dates),
         y=metric,
         color=alt.Color(
             'player',
             title='Player',
             scale=alt.Scale(domain=st.session_state.selected_players)
         ),
-        tooltip=['player', alt.Tooltip('date:T', format='%m/%d/%y'), metric]
+        tooltip=['player', alt.Tooltip('date:O'), metric]
     ).properties(
         title=alt.TitleParams(text=f"Comparing {metric} per week", anchor='middle', fontSize=24),
         height=800
@@ -110,15 +111,16 @@ def print_alliance_chart(col, metric):
     alliance_df = db.query_df(conn, alliance_query)
     alliance_df.columns = ['date', metric]
     alliance_df[metric] = alliance_df[metric].astype(float)
+    x_dates = alliance_df['date'].drop_duplicates().tolist()
     print("[INFO] Pulled alliance data from Database")
 
     # Define points and line separately to make points larger
     alliance_line = alt.Chart(alliance_df).mark_line().encode(
-        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
+        x=alt.X("date:O", axis=alt.Axis(labelAngle=-90), sort=x_dates),
         y=metric,
     )
     alliance_points = alt.Chart(alliance_df).mark_circle(size=150).encode(
-        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
+        x=alt.X("date:O", axis=alt.Axis(labelAngle=-90), sort=x_dates),
         y=metric,
         tooltip=[metric, 'date']
     ).properties(
