@@ -63,9 +63,9 @@ def print_comparison_chart(col, metric):
     combined_data = []
     for player in st.session_state.selected_players:
         if database == 'mySQL':
-            progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by date asc"    
+            progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') asc"    
         else:
-            progress_query = f"select * from alliance_data where player = ? and date != 'NaN' order by date asc" # sqlite
+            progress_query = "select * from alliance_data where player = ? and date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) asc" # sqlite
         
         player_df = db.query_df(conn, progress_query, [player])
         player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
@@ -75,10 +75,9 @@ def print_comparison_chart(col, metric):
     print("[INFO] Pulled player data from Database")
     all_players_df = pd.concat(combined_data, ignore_index=True)
 
-
     # Define points and line separately to make points larger
     player_line = alt.Chart(all_players_df).mark_line().encode(
-        x=alt.X("date"),
+        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
         y=metric,
         color=alt.Color(
             'player',
@@ -87,14 +86,14 @@ def print_comparison_chart(col, metric):
         )
     )
     player_points = alt.Chart(all_players_df).mark_circle(size=150).encode(
-        x=alt.X('date'),
+        x=alt.X('date:T', axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
         y=metric,
         color=alt.Color(
             'player',
             title='Player',
             scale=alt.Scale(domain=st.session_state.selected_players)
         ),
-        tooltip=['player', 'date', metric]
+        tooltip=['player', alt.Tooltip('date:T', format='%m/%d/%y'), metric]
     ).properties(
         title=alt.TitleParams(text=f"Comparing {metric} per week", anchor='middle', fontSize=24),
         height=800
@@ -104,7 +103,10 @@ def print_comparison_chart(col, metric):
     col.altair_chart(player_chart, use_container_width=True)
 
 def print_alliance_chart(col, metric):
-    alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date;"    
+    if database == 'mySQL':
+        alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date order by STR_TO_DATE(date, '%m/%d/%y') asc;"
+    else:
+        alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) asc;"
     alliance_df = db.query_df(conn, alliance_query)
     alliance_df.columns = ['date', metric]
     alliance_df[metric] = alliance_df[metric].astype(float)
@@ -112,11 +114,11 @@ def print_alliance_chart(col, metric):
 
     # Define points and line separately to make points larger
     alliance_line = alt.Chart(alliance_df).mark_line().encode(
-        x=alt.X("date"),
+        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
         y=metric,
     )
     alliance_points = alt.Chart(alliance_df).mark_circle(size=150).encode(
-        x=alt.X('date'),
+        x=alt.X("date:T", axis=alt.Axis(format='%m/%d/%y', labelAngle=-90), scale=alt.Scale(padding=20)),
         y=metric,
         tooltip=[metric, 'date']
     ).properties(

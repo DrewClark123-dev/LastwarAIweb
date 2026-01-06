@@ -20,7 +20,10 @@ def on_metric_change():
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
     if 'weeks' not in st.session_state:
-        week_query = "select distinct date from alliance_data where date != 'NaN' order by date desc"
+        if database == 'mySQL':
+            week_query = "select distinct date from alliance_data where date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') desc"
+        else:
+            week_query = "select distinct date from alliance_data where date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) desc"
         week_df = db.query_df(conn, week_query)
         st.session_state.weeks = week_df.iloc[:, 0].tolist()
         print("[INFO] Pulled weeks from Database")
@@ -197,9 +200,9 @@ def weekly_alliance_data(metric, date):
 
 def print_player_chart(col, player, metric):
     if database == 'mySQL':
-        progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by date asc"    
+        progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') asc"    
     else:
-        progress_query = f"select * from alliance_data where player = ? and date != 'NaN' order by date asc" # sqlite
+        progress_query = "select * from alliance_data where player = ? and date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) asc" # sqlite
     
     player_df = db.query_df(conn, progress_query, [player])
     player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
