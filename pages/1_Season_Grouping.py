@@ -5,8 +5,8 @@ import src.db as db
 
 # Goal:  Create a server/alliance comparison chart
 
-database = 'mySQL'
-#database = 'sqlite'
+#database = 'mySQL'
+database = 'sqlite'
 
 # Callbacks for selection box updates
 def on_servers_change():
