@@ -9,6 +9,7 @@ import src.db as db
 
 #database = 'mySQL'
 database = 'sqlite'
+pd.set_option('display.max_rows', None)
 
 # Callbacks for selection box updates
 def on_players_change():
@@ -63,18 +64,29 @@ def print_comparison_chart(col, metric):
     combined_data = []
     for player in st.session_state.selected_players:
         if database == 'mySQL':
-            progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') asc"    
+            progress_query = "select * from alliance_data where player = %s and date != 'NaN'"    
         else:
-            progress_query = "select * from alliance_data where player = ? and date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) asc" # sqlite
+            progress_query = "select * from alliance_data where player = ? and date != 'NaN'"
         
         player_df = db.query_df(conn, progress_query, [player])
         player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
+
+        # Convert to datetime, sort, then convert back to string mm/dd/yy
+        player_df['date'] = pd.to_datetime(player_df['date'], format='%m/%d/%y', errors='coerce')
+        player_df = player_df.sort_values('date')
+        player_df['date'] = player_df['date'].dt.strftime('%m/%d/%y')
+        print(player_df)
 
         combined_data.append(player_df[['date','player',metric]])
     
     print("[INFO] Pulled player data from Database")
     all_players_df = pd.concat(combined_data, ignore_index=True)
-    x_dates = all_players_df['date'].drop_duplicates().tolist()
+
+    # Convert unique dates to datetime, sort, then convert back to string mm/dd/yy
+    x_dates = all_players_df['date'].drop_duplicates()
+    x_dates = pd.to_datetime(x_dates, format='%m/%d/%y', errors='coerce')
+    x_dates = x_dates.sort_values()
+    x_dates = x_dates.dt.strftime('%m/%d/%y')    
 
     # Define points and line separately to make points larger
     player_line = alt.Chart(all_players_df).mark_line().encode(
