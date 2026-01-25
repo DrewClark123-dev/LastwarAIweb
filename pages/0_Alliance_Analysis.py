@@ -75,7 +75,6 @@ def print_comparison_chart(col, metric):
         player_df['date'] = pd.to_datetime(player_df['date'], format='%m/%d/%y', errors='coerce')
         player_df = player_df.sort_values('date')
         player_df['date'] = player_df['date'].dt.strftime('%m/%d/%y')
-        print(player_df)
 
         combined_data.append(player_df[['date','player',metric]])
     
