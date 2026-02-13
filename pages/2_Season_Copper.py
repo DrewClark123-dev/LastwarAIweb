@@ -5,8 +5,8 @@ import src.db as db
 
 # Goal:  Create Season 4 Copper comparison charts
 
-database = 'mySQL'
-#database = 'sqlite'
+#database = 'mySQL'
+database = 'sqlite'
 
 # Callbacks for selection box updates
 def on_alliances_change():
