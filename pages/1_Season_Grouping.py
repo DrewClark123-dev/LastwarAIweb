@@ -53,13 +53,13 @@ def render_selection_boxes(col):
     if 'herometric_choice' not in st.session_state:
         st.session_state.herometric_choice = 'Alliance'
 
-    # if st.session_state.herometric_choice == 'Server':
-    #     grouping_check = check.checkbox(
-    #         "Faction",
-    #         value=st.session_state.grouping_check,
-    #         key="grouping_faction",
-    #         on_change=grouping_checkbox
-    #         )
+    if st.session_state.herometric_choice == 'Server':
+        grouping_check = check.checkbox(
+            "Faction",
+            value=st.session_state.grouping_check,
+            key="grouping_faction",
+            on_change=grouping_checkbox
+            )
 
     metrictype_dropdown = sel2.selectbox(
         "Metric Type",
@@ -92,7 +92,8 @@ def render_selection_boxes(col):
         return metrictype_dropdown, selected_servers
     elif st.session_state.herometric_choice == 'Alliance':
         if 'selected_alliances' not in st.session_state:
-            st.session_state.selected_alliances = ['OLDs','KOUS','SiNS','ASHH','NatA','Bytl','SHT1']
+            #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
+            st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.alliances,
@@ -139,8 +140,8 @@ def print_server_chart(col, metric):
     # Define faction colors
     if st.session_state.grouping_check:
         warzone_color_map = {
-            1104: "#3ea6ff", 1095: "#3ea6ff", 1124: "#3ea6ff", 1103: "#3ea6ff",  # Golden Tribe
-            1097: "#e60000", 1115: "#e60000", 1093: "#e60000", 1113: "#e60000"   # Scarlet Legion
+            1103: "#3ea6ff", 1093: "#3ea6ff", 1112: "#3ea6ff", 1116: "#3ea6ff",  # Koubutai
+            1064: "#e60000", 1086: "#e60000", 1090: "#e60000", 1094: "#e60000"   # Kage No Sato
         }
         # Assign colors to a new column
         all_servers_df['color'] = all_servers_df['warzone'].map(warzone_color_map)

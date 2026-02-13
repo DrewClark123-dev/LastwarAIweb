@@ -26,12 +26,15 @@ def whale_checkbox():
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
     if 'whale_servers' not in st.session_state:
-        server_query = "select distinct warzone from totalhero where date = '12/06/25' order by warzone"
+        server_query = "select distinct warzone from totalhero where date = '02/12/26' order by warzone"
         server_df = db.query_df(conn, server_query)
         st.session_state.whale_region = server_df.iloc[:, 0].tolist()
         print("[INFO] Pulled servers from Database")
     if 'whale_dates' not in st.session_state:
-        date_query = "select distinct date from totalhero order by date desc"
+        if database == 'mySQL':
+            date_query = "select distinct date from totalhero where date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') desc"
+        else:
+            date_query = "select distinct date from totalhero order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) desc"
         date_df = db.query_df(conn, date_query)
         st.session_state.whale_dates = date_df.iloc[:, 0].tolist()
         print("[INFO] Pulled dates from Database")
@@ -43,15 +46,15 @@ def render_selection_boxes(col):
         st.session_state.whale_check = False
 
     check.markdown("<div style='padding-top: 30px'> </div>", unsafe_allow_html=True)
-    whale_check = check.checkbox(
-        "All Warzones",
-        value=st.session_state.whale_check,
-        key="whale_warzones_check",
-        on_change=whale_checkbox
-        )
+    # whale_check = check.checkbox(
+    #     "All Warzones",
+    #     value=st.session_state.whale_check,
+    #     key="whale_warzones_check",
+    #     on_change=whale_checkbox
+    #     )
 
     if 'whale_selected_servers' not in st.session_state:
-        st.session_state.whale_selected_servers = [1103,1104,1101,1098,1107]
+        st.session_state.whale_selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]
     whale_selected_servers = sel1.multiselect(
         "Select multiple servers",
         options=st.session_state.whale_region,
@@ -62,7 +65,8 @@ def render_selection_boxes(col):
     if 'whale_date' not in st.session_state:
         date_query = "select max(date) from totalhero"
         date_df = db.query_df(conn, date_query)
-        st.session_state.whale_date =  date_df.iloc[0, 0]   # first row, first column
+        #st.session_state.whale_date =  date_df.iloc[0, 0]   # first row, first column
+        st.session_state.whale_date = st.session_state.whale_dates[0]
     whale_date = sel3.selectbox(
         "Date",
         options=st.session_state.whale_dates,
