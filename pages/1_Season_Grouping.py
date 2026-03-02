@@ -93,7 +93,7 @@ def render_selection_boxes(col):
     elif st.session_state.herometric_choice == 'Alliance':
         if 'selected_alliances' not in st.session_state:
             #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
-            st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
+            st.session_state.selected_alliances = ['OLDs','KOUS','TAAF','bALL','TWXL','N64','T8NT']
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.alliances,
@@ -193,9 +193,10 @@ def print_alliance_chart(col, metric):
     combined_data = []
     for alliance in st.session_state.selected_alliances:
         if database == 'mySQL':
-            alliance_query = "select * from totalhero where alliance = %s and date = %s"    
+            #alliance_query = "select * from totalhero where alliance = %s and date = %s"
+            alliance_query = "select date, warzone, case when alliance in ('OLDs','KOUS') then 'OLDs+KOUS' else alliance end as alliance, player, totalhero from totalhero where alliance = %s and date = %s"
         else:
-            alliance_query = f"select * from totalhero where alliance = ? and date = ?" # sqlite
+            alliance_query = "select date, warzone, case when alliance in ('OLDs','KOUS') then 'OLDs+KOUS' else alliance end as alliance, player, totalhero from totalhero where alliance = ? and date = ?" # sqlite
         
         alliance_df = db.query_df(conn, alliance_query, [alliance, st.session_state.grouping_date])
         if not alliance_df.empty:
@@ -216,12 +217,12 @@ def print_alliance_chart(col, metric):
     server_line = alt.Chart(all_alliances_df).mark_line().encode(
         x=alt.X("rank:O", sort="descending"),
         y=alt.X("totalhero:Q"),
-        color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances))
+        color = alt.Color("alliance:N", title="Alliance") #, scale=alt.Scale(domain=st.session_state.selected_alliances))
     )
     server_points = alt.Chart(all_alliances_df).mark_circle(size=100).encode(
         x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
         y=alt.X("totalhero:Q", title="Total Hero Power"),
-        color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances)),
+        color = alt.Color("alliance:N", title="Alliance"), #, scale=alt.Scale(domain=st.session_state.selected_alliances)),
         tooltip=['warzone','alliance','player','totalhero']
     ).properties(
         title=alt.TitleParams(text=f"Comparing Total Hero Power per Alliance", anchor='middle', fontSize=24),
