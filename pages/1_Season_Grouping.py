@@ -28,7 +28,7 @@ def get_selection_data():
         st.session_state.servers = server_df.iloc[:, 0].tolist()
         print("[INFO] Pulled servers from Database")
     if 'alliances' not in st.session_state:
-        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero group by alliance order by totalhero desc"
+        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero where date = '04/11/26' group by alliance order by totalhero desc"
         alliance_df = db.query_df(conn, alliance_query)
         st.session_state.alliances = alliance_df.iloc[:, 0].tolist()
         print("[INFO] Pulled alliances from Database")
@@ -70,7 +70,8 @@ def render_selection_boxes(col):
     )
     if st.session_state.herometric_choice == 'Server':
         if 'selected_servers' not in st.session_state:
-            st.session_state.selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]
+            #st.session_state.selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]
+            st.session_state.selected_servers = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]
         selected_servers = sel1.multiselect(
             "Select multiple servers",
             options=st.session_state.servers,
@@ -93,7 +94,8 @@ def render_selection_boxes(col):
     elif st.session_state.herometric_choice == 'Alliance':
         if 'selected_alliances' not in st.session_state:
             #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
-            st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
+            #st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
+            st.session_state.selected_alliances = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.alliances,
