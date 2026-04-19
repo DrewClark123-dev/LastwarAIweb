@@ -50,7 +50,7 @@ def render_selection_boxes(col):
         on_change=on_metrictype_change
     )
     if 'selected_players' not in st.session_state:
-        st.session_state.selected_players = ['DrewC125','Megan']
+        st.session_state.selected_players = ['Drewski','Megan']
     selected_players = sel1.multiselect(
         "Select multiple players",
         options=st.session_state.players,

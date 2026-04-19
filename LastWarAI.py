@@ -55,7 +55,7 @@ def render_selection_boxes(col):
         on_change=on_week_change
     )
     if 'player_choice' not in st.session_state:
-        st.session_state.player_choice = 'DrewC125'
+        st.session_state.player_choice = 'Drewski'
     player_dropdown = col.selectbox(
         "Player",
         options=st.session_state.players,
