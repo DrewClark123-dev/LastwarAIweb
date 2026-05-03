@@ -43,7 +43,8 @@ def get_selection_data():
         print("[INFO] Pulled dates from Database")
 
 def render_selection_boxes(col):
-    space1, sel1, sel2, sel3, check, space2 = col.columns([1, 6, 1, 1, 1, 1])
+    space1, sel1, sel23, check, space2 = col.columns([1, 6, 3, 1, 1])
+    sel2, sel3 = sel23.columns([1, 1])
 
     if 'grouping_check' not in st.session_state:
         st.session_state.grouping_check = False
@@ -53,13 +54,13 @@ def render_selection_boxes(col):
     if 'herometric_choice' not in st.session_state:
         st.session_state.herometric_choice = 'Alliance'
 
-    if st.session_state.herometric_choice == 'Server':
-        grouping_check = check.checkbox(
-            "Faction",
-            value=st.session_state.grouping_check,
-            key="grouping_faction",
-            on_change=grouping_checkbox
-            )
+    # if st.session_state.herometric_choice == 'Server':
+    #     grouping_check = check.checkbox(
+    #         "Faction",
+    #         value=st.session_state.grouping_check,
+    #         key="grouping_faction",
+    #         on_change=grouping_checkbox
+    #         )
 
     metrictype_dropdown = sel2.selectbox(
         "Metric Type",
@@ -82,7 +83,7 @@ def render_selection_boxes(col):
         if 'grouping_date' not in st.session_state:
             date_query = "select max(date) from totalhero"
             date_df = db.query_df(conn, date_query)
-            st.session_state.grouping_date =  date_df.iloc[0, 0]   # first row, first column
+            st.session_state.grouping_date = date_df.iloc[0, 0]   # first row, first column
         grouping_date = sel3.selectbox(
             "Date",
             options=st.session_state.groupingdates,
@@ -90,6 +91,21 @@ def render_selection_boxes(col):
             index=st.session_state.groupingdates.index(st.session_state.grouping_date), 
             on_change=on_dates_change
         )
+        # Rankings are 1 - 200
+        if "serverfromranking" not in st.session_state:
+            st.session_state.serverfromranking = 1
+        if "servertoranking" not in st.session_state:
+            st.session_state.servertoranking = 200
+        if "server_ranking_range" not in st.session_state:
+            st.session_state.server_ranking_range = (st.session_state.serverfromranking, st.session_state.servertoranking)
+        server_ranking_slider = sel23.slider(
+            "Ranking Range:",
+            min_value=1,
+            max_value=200,
+            key="server_ranking_range"
+        )
+        st.session_state.serverfromranking, st.session_state.servertoranking = st.session_state["server_ranking_range"]
+
         return metrictype_dropdown, selected_servers
     elif st.session_state.herometric_choice == 'Alliance':
         if 'selected_alliances' not in st.session_state:
@@ -112,6 +128,20 @@ def render_selection_boxes(col):
             index=st.session_state.groupingdates.index(st.session_state.grouping_date), 
             on_change=on_dates_change
         )
+        if "alliancefromranking" not in st.session_state:
+            st.session_state.alliancefromranking = 1
+        if "alliancetoranking" not in st.session_state:
+            st.session_state.alliancetoranking = 100
+        if "alliance_ranking_range" not in st.session_state:
+            st.session_state.alliance_ranking_range = (st.session_state.alliancefromranking, st.session_state.alliancetoranking)
+        alliance_ranking_slider = sel23.slider(
+            "Ranking Range:",
+            min_value=1,
+            max_value=100,
+            key="alliance_ranking_range"
+        )
+        st.session_state.alliancefromranking, st.session_state.alliancetoranking = st.session_state["alliance_ranking_range"]
+
         return metrictype_dropdown, selected_alliances
     else:
         return None, None
@@ -138,6 +168,10 @@ def print_server_chart(col, metric):
     all_servers_df = pd.concat(combined_data, ignore_index=True)
     all_servers_df['rank'] = all_servers_df.groupby("warzone")["totalhero"].rank(method="first", ascending=False)
     all_servers_df['rank'] = all_servers_df['rank'].astype(int)
+
+    from_val = min(st.session_state.serverfromranking, st.session_state.servertoranking)
+    to_val = max(st.session_state.serverfromranking, st.session_state.servertoranking)
+    all_servers_df = all_servers_df[all_servers_df['rank'].between(from_val, to_val)]
 
     # Define faction colors
     if st.session_state.grouping_check:
@@ -213,6 +247,10 @@ def print_alliance_chart(col, metric):
     all_alliances_df = pd.concat(combined_data, ignore_index=True)
     all_alliances_df['rank'] = all_alliances_df.groupby("alliance")["totalhero"].rank(method="first", ascending=False)
     all_alliances_df['rank'] = all_alliances_df['rank'].astype(int)
+
+    from_val = min(st.session_state.alliancefromranking, st.session_state.alliancetoranking)
+    to_val = max(st.session_state.alliancefromranking, st.session_state.alliancetoranking)
+    all_alliances_df = all_alliances_df[all_alliances_df['rank'].between(from_val, to_val)]
 
     # Define points and line separately to make points larger
     server_line = alt.Chart(all_alliances_df).mark_line().encode(
