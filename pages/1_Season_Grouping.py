@@ -28,7 +28,7 @@ def get_selection_data():
         st.session_state.servers = server_df.iloc[:, 0].tolist()
         print("[INFO] Pulled servers from Database")
     if 'alliances' not in st.session_state:
-        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero where date = '04/11/26' group by alliance order by totalhero desc"
+        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero group by alliance order by totalhero desc"
         alliance_df = db.query_df(conn, alliance_query)
         st.session_state.alliances = alliance_df.iloc[:, 0].tolist()
         print("[INFO] Pulled alliances from Database")
@@ -71,8 +71,9 @@ def render_selection_boxes(col):
     )
     if st.session_state.herometric_choice == 'Server':
         if 'selected_servers' not in st.session_state:
-            #st.session_state.selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]
-            st.session_state.selected_servers = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]
+            #st.session_state.selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]    # Season 3
+            #st.session_state.selected_servers = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]   # Top 10
+            st.session_state.selected_servers = [1103,1098,1152,1130,1107,1112,1146,1162]   # Season 4
         selected_servers = sel1.multiselect(
             "Select multiple servers",
             options=st.session_state.servers,
@@ -111,7 +112,9 @@ def render_selection_boxes(col):
         if 'selected_alliances' not in st.session_state:
             #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
             #st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
-            st.session_state.selected_alliances = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
+            #desired = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
+            season4 = ['OLDs','UsU','WD40','FaF0','VQR','TBgg','KisO','FOH1','AwAR','KOUS']
+            st.session_state.selected_alliances = [a for a in season4 if a in st.session_state.alliances]
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.alliances,
@@ -255,12 +258,12 @@ def print_alliance_chart(col, metric):
     # Define points and line separately to make points larger
     server_line = alt.Chart(all_alliances_df).mark_line().encode(
         x=alt.X("rank:O", sort="descending"),
-        y=alt.X("totalhero:Q"),
+        y=alt.Y("totalhero:Q"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances))
     )
     server_points = alt.Chart(all_alliances_df).mark_circle(size=100).encode(
         x=alt.X("rank:O", title="Top 200 - Total Hero Power", sort="descending"),
-        y=alt.X("totalhero:Q", title="Total Hero Power"),
+        y=alt.Y("totalhero:Q", title="Total Hero Power"),
         color = alt.Color("alliance:N", title="Alliance", scale=alt.Scale(domain=st.session_state.selected_alliances)),
         tooltip=['warzone','alliance','player','totalhero']
     ).properties(

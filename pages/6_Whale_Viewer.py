@@ -22,12 +22,12 @@ def on_dates_change():
 def get_selection_data():
     if 'whale_servers' not in st.session_state:
         #server_query = "select distinct warzone from totalhero where date = '02/12/26' order by warzone"
-        server_query = "select distinct warzone from totalhero where date = '04/11/26' order by warzone"
+        server_query = "select distinct warzone from totalhero order by warzone"
         server_df = db.query_df(conn, server_query)
         st.session_state.whale_region = server_df.iloc[:, 0].tolist()
         print("[INFO] Pulled servers from Database")
     if 'whale_alliances' not in st.session_state:
-        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero where date = '04/11/26' group by alliance order by totalhero desc"
+        alliance_query = "select distinct alliance, sum(totalhero) as totalhero from totalhero group by alliance order by totalhero desc"
         alliance_df = db.query_df(conn, alliance_query)
         st.session_state.whale_alliances = alliance_df.iloc[:, 0].tolist()
         print("[INFO] Pulled alliances from Database")
@@ -56,7 +56,9 @@ def render_selection_boxes(col):
     )
     if st.session_state.whale_herometric_choice == 'Server':
         if 'whale_selected_servers' not in st.session_state:
-            st.session_state.whale_selected_servers = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]
+            #desired = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]   # Top 10
+            season4 = [1103,1098,1152,1130,1107,1112,1146,1162]   # Season 4
+            st.session_state.whale_selected_servers = [s for s in season4 if s in st.session_state.whale_region]
         whale_selected_servers = sel1.multiselect(
             "Select multiple servers",
             options=st.session_state.whale_region,
@@ -76,9 +78,9 @@ def render_selection_boxes(col):
         return metrictype_dropdown, whale_selected_servers
     elif st.session_state.whale_herometric_choice == 'Alliance':
         if 'whale_selected_alliances' not in st.session_state:
-            #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
-            #st.session_state.whale_selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
-            st.session_state.whale_selected_alliances = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
+            #desired = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
+            season4 = ['OLDs','UsU','WD40','FaF0','VQR','TBgg','KisO','FOH1','AwAR','KOUS']
+            st.session_state.whale_selected_alliances = [a for a in season4 if a in st.session_state.whale_alliances]
         whale_selected_alliances = sel1.multiselect(
             "Select multiple alliances",
             options=st.session_state.whale_alliances,
