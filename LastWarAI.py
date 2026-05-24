@@ -16,6 +16,19 @@ def on_player_change():
     st.session_state.player_choice = st.session_state.player_selectbox_value
 def on_metric_change():
     st.session_state.metric_choice = st.session_state.metric_selectbox_value
+def on_weeks_slider_change():
+    st.session_state.weeks_slider_choice = st.session_state.weeks_slider_value
+
+def format_delta(current, prev):
+    if current is None or prev is None:
+        return ""
+    delta = int(current - prev)
+    if delta > 0:
+        return f"&emsp;&emsp;:green[+{delta:,} ▲]"
+    elif delta < 0:
+        return f"&emsp;&emsp;:red[{delta:,} ▼]"
+    else:
+        return "&emsp;&emsp;(no change)"
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -34,6 +47,15 @@ def get_selection_data():
         print("[INFO] Pulled players from Database")
 
 def render_selection_boxes(col):
+    if 'player_choice' not in st.session_state:
+        st.session_state.player_choice = 'Drewski'
+    player_dropdown = col.selectbox(
+        "Player",
+        options=st.session_state.players,
+        key="player_selectbox_value",
+        index=st.session_state.players.index(st.session_state.player_choice),
+        on_change=on_player_change
+    )
     metric_options = ['power','kills','vs_points','donations']
     if 'metric_choice' not in st.session_state:
         st.session_state.metric_choice = 'power'
@@ -54,16 +76,18 @@ def render_selection_boxes(col):
         index=st.session_state.weeks.index(st.session_state.week_choice),
         on_change=on_week_change
     )
-    if 'player_choice' not in st.session_state:
-        st.session_state.player_choice = 'Drewski'
-    player_dropdown = col.selectbox(
-        "Player",
-        options=st.session_state.players,
-        key="player_selectbox_value",
-        index=st.session_state.players.index(st.session_state.player_choice),
-        on_change=on_player_change
+    n_weeks = len(st.session_state.weeks)
+    if 'weeks_slider_choice' not in st.session_state:
+        st.session_state.weeks_slider_choice = max(1, n_weeks)
+    weeks_slider = col.slider(
+        "Last N Weeks (Chart)",
+        min_value=1,
+        max_value=n_weeks,
+        value=st.session_state.weeks_slider_choice,
+        key="weeks_slider_value",
+        on_change=on_weeks_slider_change
     )
-    return metric_dropdown, date_dropdown, player_dropdown
+    return metric_dropdown, date_dropdown, player_dropdown, weeks_slider
 
 # Query DB for player statistics, print to a column
 def print_playerstats(col):
@@ -80,6 +104,18 @@ def print_playerstats(col):
         playerstats_df = pd.DataFrame([[None]*len(columns)], columns=columns)
     else:
         playerstats_df.columns = columns
+
+    weeks = st.session_state.weeks
+    current_idx = weeks.index(st.session_state.week_choice)
+    prev_week = weeks[current_idx + 1] if current_idx + 1 < len(weeks) else None
+    if prev_week is not None:
+        prevstats_df = db.query_df(conn, playerstats_query, [st.session_state.player_choice, prev_week])
+        if prevstats_df.empty:
+            prevstats_df = pd.DataFrame([[None]*len(columns)], columns=columns)
+        else:
+            prevstats_df.columns = columns
+    else:
+        prevstats_df = pd.DataFrame([[None]*len(columns)], columns=columns)
 
     if database == 'mySQL':
         playeravg_query = "select avg(vs_points) as vs_avg, avg(donations) as donation_avg from alliance_data where player = %s and date != 'NaN'"
@@ -99,41 +135,46 @@ def print_playerstats(col):
     col.header("Player Stats")
 
     #print(playerstats_df)
+    power_delta = format_delta(playerstats_df.at[0, 'power'], prevstats_df.at[0, 'power'])
+    kills_delta = format_delta(playerstats_df.at[0, 'kills'], prevstats_df.at[0, 'kills'])
+    vs_delta = format_delta(playerstats_df.at[0, 'vs_points'], prevstats_df.at[0, 'vs_points'])
+    donate_delta = format_delta(playerstats_df.at[0, 'donations'], prevstats_df.at[0, 'donations'])
+
     if playerstats_df.at[0, 'power'] is None:
         col.markdown(f"##### Current Power:  :red[N/A]")
     elif playerstats_df.at[0, 'power']/1000000 < 100:
-        col.markdown(f"##### Current Power:  :red[{playerstats_df.at[0, 'power']:,}]")
+        col.markdown(f"##### Current Power:  :red[{playerstats_df.at[0, 'power']:,}]{power_delta}")
     elif playerstats_df.at[0, 'power']/1000000 < 120:
-        col.markdown(f"##### Current Power:  :orange[{playerstats_df.at[0, 'power']:,}]")
+        col.markdown(f"##### Current Power:  :orange[{playerstats_df.at[0, 'power']:,}]{power_delta}")
     else:
-        col.markdown(f"##### Current Power:  :green[{playerstats_df.at[0, 'power']:,}]")
+        col.markdown(f"##### Current Power:  :green[{playerstats_df.at[0, 'power']:,}]{power_delta}")
 
     if playerstats_df.at[0, 'kills'] is None:
         col.markdown(f"##### Current Kills:  :red[N/A]")
     elif playerstats_df.at[0, 'kills']/1000000 < 1:
-        col.markdown(f"##### Current Kills:  :red[{playerstats_df.at[0, 'kills']:,}]")
+        col.markdown(f"##### Current Kills:  :red[{playerstats_df.at[0, 'kills']:,}]{kills_delta}")
     elif playerstats_df.at[0, 'kills']/1000000 < 2:
-        col.markdown(f"##### Current Kills:  :orange[{playerstats_df.at[0, 'kills']:,}]")
+        col.markdown(f"##### Current Kills:  :orange[{playerstats_df.at[0, 'kills']:,}]{kills_delta}")
     else:
-        col.markdown(f"##### Current Kills:  :green[{playerstats_df.at[0, 'kills']:,}]")
+        col.markdown(f"##### Current Kills:  :green[{playerstats_df.at[0, 'kills']:,}]{kills_delta}")
 
     if playerstats_df.at[0, 'vs_points'] is None:
         col.markdown(f"##### Weekly VS Points:  :red[N/A]")
     elif playerstats_df.at[0, 'vs_points']/1000000 < 42:
-        col.markdown(f"##### Weekly VS Points:  :red[{playerstats_df.at[0, 'vs_points']:,}]")
+        col.markdown(f"##### Weekly VS Points:  :red[{playerstats_df.at[0, 'vs_points']:,}]{vs_delta}")
     elif playerstats_df.at[0, 'vs_points']/1000000 < 50:
-        col.markdown(f"##### Weekly VS Points:  :orange[{playerstats_df.at[0, 'vs_points']:,}]")
+        col.markdown(f"##### Weekly VS Points:  :orange[{playerstats_df.at[0, 'vs_points']:,}]{vs_delta}")
     else:
-        col.markdown(f"##### Weekly VS Points:  :green[{playerstats_df.at[0, 'vs_points']:,}]")
+        col.markdown(f"##### Weekly VS Points:  :green[{playerstats_df.at[0, 'vs_points']:,}]{vs_delta}")
 
     if playerstats_df.at[0, 'donations'] is None:
         col.markdown(f"##### Weekly Donations:  :red[N/A]")
     elif playerstats_df.at[0, 'donations']/1000 < 30:
-        col.markdown(f"##### Weekly Donations:  :red[{playerstats_df.at[0, 'donations']:,}]")
+        col.markdown(f"##### Weekly Donations:  :red[{playerstats_df.at[0, 'donations']:,}]{donate_delta}")
     elif playerstats_df.at[0, 'donations']/1000 < 35:
-        col.markdown(f"##### Weekly Donations:  :orange[{playerstats_df.at[0, 'donations']:,}]")
+        col.markdown(f"##### Weekly Donations:  :orange[{playerstats_df.at[0, 'donations']:,}]{donate_delta}")
     else:
-        col.markdown(f"##### Weekly Donations:  :green[{playerstats_df.at[0, 'donations']:,}]")
+        col.markdown(f"##### Weekly Donations:  :green[{playerstats_df.at[0, 'donations']:,}]{donate_delta}")
 
     if playeravg_df.at[0, 'vs_avg'] is None:
         col.markdown(f"##### Avg VS Points:  :red[N/A]")
@@ -198,16 +239,18 @@ def weekly_alliance_data(metric, date):
     print("[INFO] Pulled alliance weekly data from Database")
     return df
 
-def print_player_chart(col, player, metric):
+def print_player_chart(col, player, metric, last_n=None):
     if database == 'mySQL':
-        progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') asc"    
+        progress_query = "select * from alliance_data where player = %s and date != 'NaN' order by STR_TO_DATE(date, '%m/%d/%y') asc"
     else:
         progress_query = "select * from alliance_data where player = ? and date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) asc" # sqlite
-    
+
     player_df = db.query_df(conn, progress_query, [player])
     player_df.columns = ['olds_rank', 'player', 'date', 'power', 'kills', 'vs_points', 'donations']
 
     member_df = player_df[['date',metric]]
+    if last_n is not None:
+        member_df = member_df.iloc[-last_n:]
 
     # Define points and line separately to make points larger
     player_line = alt.Chart(member_df).mark_line().encode(
@@ -252,14 +295,14 @@ if __name__ == "__main__":
     col2.header("Query Selection")
     get_selection_data()
     select1, select2 = col2.columns([2, 1])
-    metric_dropdown, date_dropdown, player_dropdown = render_selection_boxes(select1)
+    metric_dropdown, date_dropdown, player_dropdown, weeks_slider = render_selection_boxes(select1)
     print_playerstats(col2)
     print_alliancestats(col2)
 
     # Print data for the left column
     col1.markdown("<h1 style='text-align: center; color: #3ea6ff; '>OLDs Lastwar Dashboard</h1>", unsafe_allow_html=True)
     col1.write("")
-    print_player_chart(col1, player_dropdown, metric_dropdown)
+    print_player_chart(col1, player_dropdown, metric_dropdown, last_n=weeks_slider)
     alliance_df = weekly_alliance_data(metric_dropdown, date_dropdown)
     print_alliance_data(col1, alliance_df, metric_dropdown)
 
