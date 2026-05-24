@@ -18,6 +18,10 @@ def on_metric_change():
     st.session_state.metric_choice = st.session_state.metric_selectbox_value
 def on_metrictype_change():
     st.session_state.metrictype_choice = st.session_state.metrictype_selectbox_value
+def on_delta_change():
+    st.session_state.delta_choice = st.session_state.delta_toggle_value
+def on_weeks_slider_change():
+    st.session_state.aa_weeks_slider_choice = st.session_state.aa_weeks_slider_value
 
 # Get unique players,dates from db, cache them, show them in dropdown
 def get_selection_data():
@@ -26,9 +30,16 @@ def get_selection_data():
         player_df = db.query_df(conn, player_query)
         st.session_state.players = player_df.iloc[:, 0].tolist()
         print("[INFO] Pulled players from Database")
+    if 'weeks' not in st.session_state:
+        week_query = "select distinct date from alliance_data where date != 'NaN' order by substr(date, 7, 2) || '-' || substr(date, 1, 2) || '-' || substr(date, 4, 2) desc"
+        week_df = db.query_df(conn, week_query)
+        st.session_state.weeks = week_df.iloc[:, 0].tolist()
+        print("[INFO] Pulled weeks from Database")
 
 def render_selection_boxes(col):
-    space1, sel1, sel2, sel3, space2 = col.columns([1, 6, 1, 1, 2])
+    space1, sel1, metrics_col, delta_col = col.columns([1, 6, 2, 2])
+    sel2, sel3 = metrics_col.columns(2)
+
     metric_options = ['power','kills','vs_points','donations']
     if 'metric_choice' not in st.session_state:
         st.session_state.metric_choice = 'power'
@@ -36,7 +47,7 @@ def render_selection_boxes(col):
         "Metric",
         options=metric_options,
         key="metric_selectbox_value",
-        index=metric_options.index(st.session_state.metric_choice), 
+        index=metric_options.index(st.session_state.metric_choice),
         on_change=on_metric_change
     )
     metrictype_options = ['Player','Alliance']
@@ -46,7 +57,7 @@ def render_selection_boxes(col):
         "Metric Type",
         options=metrictype_options,
         key="metrictype_selectbox_value",
-        index=metrictype_options.index(st.session_state.metrictype_choice), 
+        index=metrictype_options.index(st.session_state.metrictype_choice),
         on_change=on_metrictype_change
     )
     if 'selected_players' not in st.session_state:
@@ -58,9 +69,29 @@ def render_selection_boxes(col):
         default=st.session_state.selected_players,
         on_change=on_players_change
     )
-    return metrictype_dropdown, metric_dropdown, selected_players
+    n_weeks = max(1, len(st.session_state.weeks))
+    if 'aa_weeks_slider_choice' not in st.session_state:
+        st.session_state.aa_weeks_slider_choice = n_weeks
+    weeks_slider = metrics_col.slider(
+        "Last N Weeks (Chart)",
+        min_value=1,
+        max_value=n_weeks,
+        value=st.session_state.aa_weeks_slider_choice,
+        key="aa_weeks_slider_value",
+        on_change=on_weeks_slider_change
+    )
+    if 'delta_choice' not in st.session_state:
+        st.session_state.delta_choice = False
+    delta_col.markdown("<div style='padding-top: 36px'></div>", unsafe_allow_html=True)
+    delta_toggle = delta_col.toggle(
+        "Delta",
+        key="delta_toggle_value",
+        value=st.session_state.delta_choice,
+        on_change=on_delta_change
+    )
+    return metrictype_dropdown, metric_dropdown, selected_players, delta_toggle, weeks_slider
 
-def print_comparison_chart(col, metric):
+def print_comparison_chart(col, metric, delta=False, last_n=None):
     combined_data = []
     for player in st.session_state.selected_players:
         if database == 'mySQL':
@@ -76,6 +107,10 @@ def print_comparison_chart(col, metric):
         player_df = player_df.sort_values('date')
         player_df['date'] = player_df['date'].dt.strftime('%m/%d/%y')
 
+        if delta:
+            player_df[metric] = player_df[metric].diff()
+            player_df = player_df.dropna(subset=[metric])
+
         combined_data.append(player_df[['date','player',metric]])
     
     print("[INFO] Pulled player data from Database")
@@ -85,7 +120,10 @@ def print_comparison_chart(col, metric):
     x_dates = all_players_df['date'].drop_duplicates()
     x_dates = pd.to_datetime(x_dates, format='%m/%d/%y', errors='coerce')
     x_dates = x_dates.sort_values()
-    x_dates = x_dates.dt.strftime('%m/%d/%y')    
+    x_dates = x_dates.dt.strftime('%m/%d/%y')
+    if last_n is not None:
+        x_dates = x_dates.iloc[-last_n:]
+        all_players_df = all_players_df[all_players_df['date'].isin(x_dates)]
 
     # Define points and line separately to make points larger
     player_line = alt.Chart(all_players_df).mark_line().encode(
@@ -107,14 +145,34 @@ def print_comparison_chart(col, metric):
         ),
         tooltip=['player', alt.Tooltip('date:O'), metric]
     ).properties(
-        title=alt.TitleParams(text=f"Comparing {metric} per week", anchor='middle', fontSize=24),
+        title=alt.TitleParams(text=f"Weekly Change in {metric}" if delta else f"Comparing {metric} per week", anchor='middle', fontSize=24),
         height=800
     ).interactive()
 
     player_chart = player_line + player_points
     col.altair_chart(player_chart, width='stretch')
 
-def print_alliance_chart(col, metric):
+    _, btn_col, _ = col.columns([1, 8, 2])
+    btn_col.download_button(
+        "Download CSV",
+        data=all_players_df.to_csv(index=False),
+        file_name=f"player_{metric}_data.csv",
+        mime="text/csv"
+    )
+
+    if len(x_dates) >= 2:
+        latest = x_dates.iloc[-1]
+        prev = x_dates.iloc[-2]
+        curr_df = all_players_df[all_players_df['date'] == latest][['player', metric]].rename(columns={metric: 'current'})
+        prev_df = all_players_df[all_players_df['date'] == prev][['player', metric]].rename(columns={metric: 'previous'})
+        delta_df = curr_df.merge(prev_df, on='player', how='left')
+        delta_df['delta'] = delta_df['current'] - delta_df['previous']
+        delta_df = delta_df.sort_values('delta', ascending=False).set_index('player')
+        _, expander_col, _ = col.columns([1, 8, 2])
+        with expander_col.expander(f"Week-over-Week Changes  ({prev} → {latest})"):
+            st.dataframe(delta_df.style.format("{:,.0f}"))
+
+def print_alliance_chart(col, metric, delta=False, last_n=None):
     if database == 'mySQL':
         alliance_query = f"select date, sum({metric}) from alliance_data where date != 'NaN' group by date order by STR_TO_DATE(date, '%m/%d/%y') asc;"
     else:
@@ -122,6 +180,11 @@ def print_alliance_chart(col, metric):
     alliance_df = db.query_df(conn, alliance_query)
     alliance_df.columns = ['date', metric]
     alliance_df[metric] = alliance_df[metric].astype(float)
+    if delta:
+        alliance_df[metric] = alliance_df[metric].diff()
+        alliance_df = alliance_df.dropna(subset=[metric])
+    if last_n is not None:
+        alliance_df = alliance_df.iloc[-last_n:]
     x_dates = alliance_df['date'].drop_duplicates().tolist()
     print("[INFO] Pulled alliance data from Database")
 
@@ -135,12 +198,19 @@ def print_alliance_chart(col, metric):
         y=metric,
         tooltip=[metric, 'date']
     ).properties(
-        title=alt.TitleParams(text=f"Alliance {metric} per week", anchor='middle', fontSize=24),
+        title=alt.TitleParams(text=f"Alliance Weekly Change in {metric}" if delta else f"Alliance {metric} per week", anchor='middle', fontSize=24),
         height=800
     ).interactive()
 
     alliance_chart = alliance_line + alliance_points
     col.altair_chart(alliance_chart, width='stretch')
+
+    col.download_button(
+        "Download CSV",
+        data=alliance_df.to_csv(index=False),
+        file_name=f"alliance_{metric}_data.csv",
+        mime="text/csv"
+    )
 
 if __name__ == "__main__":
     print("==================================================")
@@ -156,12 +226,12 @@ if __name__ == "__main__":
     selection_container = st.container()
 
     with selection_container:
-        metrictype_dropdown, metric_dropdown, player_dropdown = render_selection_boxes(st)
+        metrictype_dropdown, metric_dropdown, player_dropdown, delta_toggle, weeks_slider = render_selection_boxes(st)
     with chart_container:
         if metrictype_dropdown == 'Player' and st.session_state.selected_players:
-            print_comparison_chart(st, metric_dropdown)
+            print_comparison_chart(st, metric_dropdown, delta_toggle, last_n=weeks_slider)
         elif metrictype_dropdown == 'Alliance':
-            print_alliance_chart(st, metric_dropdown)
+            print_alliance_chart(st, metric_dropdown, delta_toggle, last_n=weeks_slider)
         else:
             dummy_chart = alt.Chart().mark_point().encode().properties(height=800)
             st.altair_chart(dummy_chart)
