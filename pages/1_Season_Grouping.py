@@ -73,7 +73,8 @@ def render_selection_boxes(col):
         if 'selected_servers' not in st.session_state:
             #st.session_state.selected_servers = [1103,1064,1086,1090,1093,1094,1112,1116]    # Season 3
             #st.session_state.selected_servers = [1103,1098,1072,1123,1084,1062,1064,1097,1110,1114]   # Top 10
-            st.session_state.selected_servers = [1103,1098,1152,1130,1107,1112,1146,1162]   # Season 4
+            #st.session_state.selected_servers = [1103,1098,1152,1130,1107,1112,1146,1162]   # Season 4
+            st.session_state.selected_servers = [1130,1083,1157,1098,1114,1074,1081,1136,1084]    # Season 5 Transfers
         selected_servers = sel1.multiselect(
             "Select multiple servers",
             options=st.session_state.servers,
@@ -113,7 +114,7 @@ def render_selection_boxes(col):
             #st.session_state.selected_alliances = ['OLDs','KOUS','baek','ASHH','NatA','Bytl','SHT1']
             #st.session_state.selected_alliances = ['OLDs','TAAF','bALL','TWXL','N64','T8NT']
             #desired = ['OLDs','UsU','Forc','SHUB','MaZ','SVGZ','DoDo','TAAF','blod','Ap3x']
-            season4 = ['OLDs','UsU','WD40','FaF0','VQR','TBgg','KisO','FOH1','AwAR','KOUS']
+            season4 = ['OLDs','FaF0','DoDo','L4F','UsU','SHUB','MaZ','Forc','w3R1','SVGZ']    # Season 5 Transfers
             st.session_state.selected_alliances = [a for a in season4 if a in st.session_state.alliances]
         selected_alliances = sel1.multiselect(
             "Select multiple alliances",
