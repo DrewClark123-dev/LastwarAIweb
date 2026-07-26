@@ -56,9 +56,21 @@ if __name__ == "__main__":
     if st.session_state.logged_in:
         if "response_df" not in st.session_state:
             st.session_state.response_df = get_sheet_data()
+
+        ctrl1, ctrl2, ctrl3 = st.columns([1, 1, 4])
+        if ctrl1.button("Refresh"):
+            st.session_state.response_df = get_sheet_data()
+        ctrl2.metric("Applications", len(st.session_state.response_df))
+        search = ctrl3.text_input("Search", placeholder="Filter by any field...")
+
         st.subheader("Transfer Applications")
         st.write("")
-        st.dataframe(st.session_state.response_df, height=700)
+
+        display_df = st.session_state.response_df
+        if search:
+            mask = display_df.apply(lambda row: row.str.contains(search, case=False, na=False).any(), axis=1)
+            display_df = display_df[mask]
+        st.dataframe(display_df, height=700)
         
     if st.session_state.incorrect_pass == True:
         st.markdown('<p style="color:red;">Password Incorrect</p>', unsafe_allow_html=True)
